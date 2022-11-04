@@ -191,7 +191,9 @@ class Server:
         stats = self.test_personalized_model(selected=selected)
         test_ids, test_num_samples, test_tot_correct, test_losses = stats[:4]
         glob_acc = np.sum(test_tot_correct)*1.0/np.sum(test_num_samples)
-        test_loss = np.sum([x * y for (x, y) in zip(test_num_samples, test_losses)]).item() / np.sum(test_num_samples)
+        # test_loss = np.sum([x * y for (x, y) in zip(test_num_samples, test_losses)]).item() / np.sum(test_num_samples)
+        test_loss = np.sum([x * y.detach().numpy() for (x, y) in zip(test_num_samples, test_losses)]).item() / np.sum(test_num_samples)
+
         if save:
             self.metrics['per_acc'].append(glob_acc)
             self.metrics['per_loss'].append(test_loss)
@@ -224,7 +226,9 @@ class Server:
         # override evaluate function to log vae-loss.
         test_ids, test_samples, test_accs, test_losses = self.test(selected=selected)
         glob_acc = np.sum(test_accs)*1.0/np.sum(test_samples)
-        glob_loss = np.sum([x * y for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
+        # glob_loss = np.sum([x * y for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
+        glob_loss = np.sum([x * y.detach().numpy() for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
+
         if save:
             self.metrics['glob_acc'].append(glob_acc)
             self.metrics['glob_loss'].append(glob_loss)
