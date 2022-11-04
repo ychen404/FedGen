@@ -127,3 +127,17 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# dataset
+data/*
+!data/CelebA/generate_niid_agg.py
+!data/CelebA/README.md
+!data/EMnist/generate_niid_dirichlet.py
+!data/Mnist/generate_niid_dirichlet.py
+
+# results
+results/*
+
+# models
+models/*
+
