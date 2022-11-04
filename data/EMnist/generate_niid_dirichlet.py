@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
+import pdb
 
 random.seed(42)
 np.random.seed(42)
@@ -58,7 +59,7 @@ def sample_class(SRC_N_CLASS, NUM_LABELS, user_id, label_random=False):
     else:
         return [(user_id + j) % SRC_N_CLASS for j in range(NUM_LABELS)]
 
-def devide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=0.5, sampling_ratio=0.5):
+def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=0.5, sampling_ratio=0.5):
     min_sample = len(SRC_CLASSES) * min_sample
     min_size = 0 # track minimal samples per user
     ###### Determine Sampling #######
@@ -149,7 +150,7 @@ def main():
 
     def process_user_data(mode, data, n_sample, SRC_CLASSES, Labels=None, unknown_test=0):
         if mode == 'train':
-            X, y, Labels, idx_batch, samples_per_user  = devide_train_data(
+            X, y, Labels, idx_batch, samples_per_user = divide_train_data(
                 data, n_sample, SRC_CLASSES, NUM_USERS, args.min_sample, args.alpha, args.sampling_ratio)
         if mode == 'test':
             assert Labels != None or unknown_test
@@ -194,7 +195,7 @@ def main():
                 print("{} Labels/ {} Number of training samples for user [{}]:".format(len(Labels[u]), n_samples_for_u, u))
             return Labels, idx_batch, samples_per_user
 
-
+    pdb.set_trace()
     print(f"Reading source dataset.")
     train_data, n_train_sample, SRC_N_CLASS = get_dataset(mode='train', split=args.split)
     test_data, n_test_sample, SRC_N_CLASS = get_dataset(mode='test', split=args.split)

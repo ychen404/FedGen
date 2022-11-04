@@ -134,7 +134,7 @@ data/*
 !data/CelebA/README.md
 !data/EMnist/generate_niid_dirichlet.py
 !data/Mnist/generate_niid_dirichlet.py
-
+test_emnist/data
 # results
 results/*
 

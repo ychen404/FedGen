@@ -12,6 +12,7 @@ from FLAlgorithms.trainmodel.models import Net
 from torch.utils.data import DataLoader
 from FLAlgorithms.trainmodel.generator import Generator
 from utils.model_config import *
+import pdb
 METRICS = ['glob_acc', 'per_acc', 'glob_loss', 'per_loss', 'user_train_time', 'server_agg_time']
 
 
@@ -62,7 +63,10 @@ def read_data(dataset):
         train_data: dictionary of train data
         test_data: dictionary of test data
     '''
+
+    pdb.set_trace()
     train_data_dir, test_data_dir, proxy_data_dir = get_data_dir(dataset)
+    
     clients = []
     groups = []
     train_data = {}
@@ -222,7 +226,8 @@ def create_generative_model(dataset, algorithm='', model='cnn', embedding=False)
 
 def create_model(model, dataset, algorithm):
     passed_dataset = get_dataset_name(dataset)
-    model= Net(passed_dataset, model), model
+    # why is this additional 'model' required?
+    model = Net(passed_dataset, model), model
     return model
 
 

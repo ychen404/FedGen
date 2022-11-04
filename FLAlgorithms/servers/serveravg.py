@@ -4,6 +4,8 @@ from utils.model_utils import read_data, read_user_data
 import numpy as np
 # Implementation for FedAvg Server
 import time
+import pdb
+
 
 class FedAvg(Server):
     def __init__(self, args, model, seed):
@@ -11,6 +13,7 @@ class FedAvg(Server):
 
         # Initialize data for all  users
         data = read_data(args.dataset)
+        pdb.set_trace()
         total_users = len(data[0])
         self.use_adam = 'adam' in self.algorithm.lower()
         print("Users in total: {}".format(total_users))
