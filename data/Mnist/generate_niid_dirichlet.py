@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 import pdb
 
-
 random.seed(42)
 np.random.seed(42)
 
@@ -20,18 +19,6 @@ def rearrange_data_by_class(data, targets, n_class):
         idx = targets == i
         new_data.append(data[idx])
     return new_data
-
-
-def split_train_data(train_data, public_portion=0.1):
-    length = len(train_data)
-    public_part = int(public_portion * length)
-    private_part = length - public_part
-
-    print(f"Length: {length}; public_part: {public_part}, private_part: {private_part} ")
-
-    public, private = torch.utils.data.random_split(train_data, [public_part, private_part])
-
-    return public, private
 
 
 def get_dataset(mode='train'):
