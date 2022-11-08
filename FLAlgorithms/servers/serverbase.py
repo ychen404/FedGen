@@ -10,6 +10,7 @@ import torch.nn as nn
 from utils.model_utils import get_log_path, METRICS
 
 class Server:
+
     def __init__(self, args, model, seed):
         # Set up the main attributes
         self.dataset = args.dataset
@@ -156,7 +157,6 @@ class Server:
     def test(self, selected=False):
         '''tests self.latest_model on given clients
         '''
-        
         num_samples = []
         tot_correct = []
         losses = []
@@ -180,6 +180,7 @@ class Server:
         tot_correct = []
         losses = []
         users = self.selected_users if selected else self.users
+        
         for c in users:
             ct, ns, loss = c.test_personalized_model()
             tot_correct.append(ct*1.0)
@@ -205,8 +206,9 @@ class Server:
     def evaluate_ensemble(self, selected=True):
         self.model.eval()
         users = self.selected_users if selected else self.users
-        test_acc=0
-        loss=0
+        test_acc = 0
+        loss = 0
+        
         for x, y in self.testloaderfull:
             target_logit_output=0
             for user in users:
@@ -235,4 +237,3 @@ class Server:
             self.metrics['glob_acc'].append(glob_acc)
             self.metrics['glob_loss'].append(glob_loss)
         print("Average Global Accurancy = {:.4f}, Loss = {:.2f}.".format(glob_acc, glob_loss))
-

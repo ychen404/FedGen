@@ -15,7 +15,6 @@ random.seed(42)
 np.random.seed(42)
 
 def rearrange_data_by_class(data, targets, n_class):
-    
     new_data = []
     for i in trange(n_class):
         idx = targets == i
@@ -24,7 +23,6 @@ def rearrange_data_by_class(data, targets, n_class):
 
 
 def split_train_data(train_data, public_portion=0.1):
-    
     length = len(train_data)
     public_part = int(public_portion * length)
     private_part = length - public_part
@@ -37,7 +35,6 @@ def split_train_data(train_data, public_portion=0.1):
 
 
 def get_dataset(mode='train'):
-    
     transform = transforms.Compose(
        [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 
@@ -74,8 +71,8 @@ def get_dataset(mode='train'):
 
     return data_by_class, n_sample, SRC_N_CLASS
 
+
 def sample_class(SRC_N_CLASS, NUM_LABELS, user_id, label_random=False):
-    
     assert NUM_LABELS <= SRC_N_CLASS
     if label_random:
         source_classes = [n for n in range(SRC_N_CLASS)]
@@ -84,9 +81,10 @@ def sample_class(SRC_N_CLASS, NUM_LABELS, user_id, label_random=False):
     else:
         return [(user_id + j) % SRC_N_CLASS for j in range(NUM_LABELS)]
 
+
 def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=0.5, sampling_ratio=0.5, public_ratio=0.1):
     
-    min_sample = 10 #len(SRC_CLASSES) * min_sample
+    min_sample = 10 # len(SRC_CLASSES) * min_sample
     min_size = 0 # track minimal samples per user
     
     ###### Determine Sampling #######
@@ -117,9 +115,6 @@ def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=
 
                 # take the public portion starting from the samples for train
                 idx_l_public = idx_l[samples_for_l:(samples_for_l + public_samples_for_l)]
-
-                # print(l, len(data[l]), len(idx_l))
-                # print(l, len(data[l]), len(idx_l_train), len(idx_l_public))
             
             # dirichlet sampling from this label
             proportions=np.random.dirichlet(np.repeat(alpha, NUM_USERS))
@@ -134,28 +129,23 @@ def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=
             # pdb.set_trace()
             for u, new_idx in enumerate(np.split(idx_l_train, proportions)):
                 # add new index to the user
-                # pdb.set_trace()
                 idx_batch[u][l] = new_idx.tolist()
                 samples_per_user[u] += len(idx_batch[u][l])
 
-            # similar operation for public dataset
-            # for new_idx in idx_l_public:
-            #     # add new index 
+            # add new index of the public dataset
             idx_batch_public[l] = idx_l_public
                 
         min_size = min(samples_per_user)
 
-    # pdb.set_trace()
     ###### CREATE USER DATA SPLIT #######
     X = [[] for _ in range(NUM_USERS)]
     y = [[] for _ in range(NUM_USERS)]
 
+    # store public data and label
     Xpublic = []
     ypublic = []
 
     Labels=[set() for _ in range(NUM_USERS)]
-
-    # pdb.set_trace()
 
     print("processing users...")
     for u, user_idx_batch in enumerate(idx_batch):
@@ -173,11 +163,9 @@ def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=
         ypublic += (l * np.ones(len(indices))).tolist()
         # Labels[u].add(l)
 
-    # for idx in idx_l_public:
-    #     X.append(data[idx])
-
     # pdb.set_trace()
     return X, y, Labels, idx_batch, samples_per_user, Xpublic, ypublic
+
 
 def divide_test_data(NUM_USERS, SRC_CLASSES, test_data, Labels, unknown_test):
     # Create TEST data for each user.
@@ -197,6 +185,7 @@ def divide_test_data(NUM_USERS, SRC_CLASSES, test_data, Labels, unknown_test):
             assert len(test_X[user]) == len(test_y[user]), f"{len(test_X[user])} == {len(test_y[user])}"
             idx[l] += num_samples
     return test_X, test_y
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -304,9 +293,6 @@ def main():
     print(f"Reading source dataset.")
     # get the pytorch dataset and arrage by classes  
     train_data_by_class, n_train_sample, SRC_N_CLASS = get_dataset(mode='train')
-
-    # pdb.set_trace()
-
     test_data_by_class, n_test_sample, SRC_N_CLASS = get_dataset(mode='test')
     
     # create the shuffled label list
