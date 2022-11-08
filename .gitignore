@@ -129,12 +129,17 @@ dmypy.json
 .pyre/
 
 # dataset
-data/*
+# data/*
+
+data/CelebA/*
+data/EMnist/*
+data/Mnist/*
+
 !data/CelebA/generate_niid_agg.py
 !data/CelebA/README.md
 !data/EMnist/generate_niid_dirichlet.py
 !data/Mnist/generate_niid_dirichlet.py
-!data/Mnist/generate_niid_dirichlet.py
+
 test_emnist/data
 # results
 results/*

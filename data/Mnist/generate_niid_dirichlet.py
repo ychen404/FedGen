@@ -29,10 +29,7 @@ def get_dataset(mode='train'):
     n_sample = len(dataset.data)
     print(f"n_sample in training data: {n_sample}")
     SRC_N_CLASS = len(dataset.classes)
-    
-    # pdb.set_trace()
-    # private_dataset, public_dataset = split_train_data(dataset)
-    
+        
     # full batch
     trainloader = DataLoader(dataset, batch_size=n_sample, shuffle=False)
     # trainloader = DataLoader(private_dataset, batch_size=n_sample, shuffle=False)
