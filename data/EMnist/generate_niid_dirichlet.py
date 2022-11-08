@@ -28,6 +28,7 @@ def get_dataset(mode='train', split='balanced'):
     dataset = EMNIST(root='./data', split=split, train=True if mode=='train' else False, download=True, transform=transform)
     n_sample = len(dataset.data)
     SRC_N_CLASS = len(dataset.classes)
+    
     # full batch
     trainloader = DataLoader(dataset, batch_size=n_sample, shuffle=False)
 
