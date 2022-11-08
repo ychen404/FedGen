@@ -13,7 +13,6 @@ import pdb
 
 def create_server_n_user(args, i):
     model = create_model(args.model, args.dataset, args.algorithm)
-    pdb.set_trace()
     
     if ('FedAvg' in args.algorithm):
         server=FedAvg(args, model, i)

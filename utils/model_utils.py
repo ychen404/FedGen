@@ -82,6 +82,9 @@ def read_data(dataset):
                 cdata = json.load(inf)
         elif file_path.endswith(".pt"):
             with open(file_path, 'rb') as inf:
+                # The cdata contains the following keys: ['users', 'user_data', 'num_samples']
+                # 'users' contains all the user names from 'f_00000' to f_00019'
+                # 'user_data' contains all the data categorized by user names
                 cdata = torch.load(inf)
         else:
             raise TypeError("Data format not recognized: {}".format(file_path))
@@ -100,6 +103,7 @@ def read_data(dataset):
         if file_path.endswith(".pt"):
             with open(file_path, 'rb') as inf:
                 cdata = torch.load(inf)
+
         elif file_path.endswith(".json"):
             with open(file_path, 'r') as inf:
                 cdata = json.load(inf)

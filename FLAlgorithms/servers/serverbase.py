@@ -156,10 +156,12 @@ class Server:
     def test(self, selected=False):
         '''tests self.latest_model on given clients
         '''
+        
         num_samples = []
         tot_correct = []
         losses = []
         users = self.selected_users if selected else self.users
+        
         for c in users:
             ct, c_loss, ns = c.test()
             tot_correct.append(ct*1.0)

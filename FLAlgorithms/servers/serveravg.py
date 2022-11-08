@@ -13,23 +13,29 @@ class FedAvg(Server):
 
         # Initialize data for all  users
         data = read_data(args.dataset)
+        # data contains: clients, groups, train_data, test_data, proxy_data
         pdb.set_trace()
+
         total_users = len(data[0])
+        
         self.use_adam = 'adam' in self.algorithm.lower()
         print("Users in total: {}".format(total_users))
+        pdb.set_trace()
 
         for i in range(total_users):
             id, train_data , test_data = read_user_data(i, data, dataset=args.dataset)
             user = UserAVG(args, id, model, train_data, test_data, use_adam=False)
             self.users.append(user)
             self.total_train_samples += user.train_samples
-            
+        
+        pdb.set_trace()
         print("Number of users / total users:",args.num_users, " / " ,total_users)
         print("Finished creating FedAvg server.")
 
     def train(self, args):
         for glob_iter in range(self.num_glob_iters):
             print("\n\n-------------Round number: ",glob_iter, " -------------\n\n")
+            pdb.set_trace()
             self.selected_users = self.select_users(glob_iter,self.num_users)
             self.send_parameters(mode=self.mode)
             self.evaluate()

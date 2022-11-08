@@ -32,7 +32,7 @@ def get_dataset(mode='train', split='balanced'):
     trainloader = DataLoader(dataset, batch_size=n_sample, shuffle=False)
 
     print("Loading data from storage ...")
-    for _, xy in enumerate(trainloader, 0):
+    for _, xy in enumerate(trainloader, start=0):
         dataset.data, dataset.targets = xy
 
     print("Rearrange data by class...")

@@ -8,29 +8,58 @@ from torchvision.datasets import MNIST
 import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
+import pdb
+
 
 random.seed(42)
 np.random.seed(42)
 
 def rearrange_data_by_class(data, targets, n_class):
+    
     new_data = []
     for i in trange(n_class):
         idx = targets == i
         new_data.append(data[idx])
     return new_data
 
+
+def split_train_data(train_data, public_portion=0.1):
+    
+    length = len(train_data)
+    public_part = int(public_portion * length)
+    private_part = length - public_part
+
+    print(f"Length: {length}; public_part: {public_part}, private_part: {private_part} ")
+
+    public, private = torch.utils.data.random_split(train_data, [public_part, private_part])
+
+    return public, private
+
+
 def get_dataset(mode='train'):
+    
     transform = transforms.Compose(
        [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 
     dataset = MNIST(root='./data', train=True if mode=='train' else False, download=True, transform=transform)
     n_sample = len(dataset.data)
+    print(f"n_sample in training data: {n_sample}")
     SRC_N_CLASS = len(dataset.classes)
+    
+    # pdb.set_trace()
+    # private_dataset, public_dataset = split_train_data(dataset)
+    
     # full batch
     trainloader = DataLoader(dataset, batch_size=n_sample, shuffle=False)
+    # trainloader = DataLoader(private_dataset, batch_size=n_sample, shuffle=False)
+
+    # public data
+    # publicloader = DataLoader(public_dataset, batch_size=128, shuffle=False)
 
     print("Loading data from storage ...")
-    for _, xy in enumerate(trainloader, 0):
+    
+    # the following code seems redundant
+    for _, xy in enumerate(trainloader):
         dataset.data, dataset.targets = xy
 
     print("Rearrange data by class...")
@@ -39,12 +68,14 @@ def get_dataset(mode='train'):
         dataset.targets.cpu().detach().numpy(),
         SRC_N_CLASS
     )
+    # pdb.set_trace()
     print(f"{mode.upper()} SET:\n  Total #samples: {n_sample}. sample shape: {dataset.data[0].shape}")
     print("  #samples per class:\n", [len(v) for v in data_by_class])
 
     return data_by_class, n_sample, SRC_N_CLASS
 
 def sample_class(SRC_N_CLASS, NUM_LABELS, user_id, label_random=False):
+    
     assert NUM_LABELS <= SRC_N_CLASS
     if label_random:
         source_classes = [n for n in range(SRC_N_CLASS)]
@@ -53,49 +84,100 @@ def sample_class(SRC_N_CLASS, NUM_LABELS, user_id, label_random=False):
     else:
         return [(user_id + j) % SRC_N_CLASS for j in range(NUM_LABELS)]
 
-def devide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=0.5, sampling_ratio=0.5):
-    min_sample = 10#len(SRC_CLASSES) * min_sample
+def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=0.5, sampling_ratio=0.5, public_ratio=0.1):
+    
+    min_sample = 10 #len(SRC_CLASSES) * min_sample
     min_size = 0 # track minimal samples per user
+    
     ###### Determine Sampling #######
     while min_size < min_sample:
-        print("Try to find valid data separation")
-        idx_batch=[{} for _ in range(NUM_USERS)]
+    
+        # print("Try to find valid data separation")
+        idx_batch = [{} for _ in range(NUM_USERS)]
+        idx_batch_public = {}
+
         samples_per_user = [0 for _ in range(NUM_USERS)]
         max_samples_per_user = sampling_ratio * n_sample / NUM_USERS
+    
+        # pdb.set_trace()
         for l in SRC_CLASSES:
+    
             # get indices for all that label
             idx_l = [i for i in range(len(data[l]))]
             np.random.shuffle(idx_l)
             if sampling_ratio < 1:
-                samples_for_l = int( min(max_samples_per_user, int(sampling_ratio * len(data[l]))) )
-                idx_l = idx_l[:samples_for_l]
-                print(l, len(data[l]), len(idx_l))
+                samples_for_l = int( min(max_samples_per_user, int(sampling_ratio * len(data[l]))))
+                
+                # add the support of creating public data
+                public_samples_for_l = int(len(data[l]) * public_ratio)
+
+                # use the first samples_for_l samples as training
+                # idx_l = idx_l[:samples_for_l]
+                idx_l_train = idx_l[:samples_for_l]
+
+                # take the public portion starting from the samples for train
+                idx_l_public = idx_l[samples_for_l:(samples_for_l + public_samples_for_l)]
+
+                # print(l, len(data[l]), len(idx_l))
+                # print(l, len(data[l]), len(idx_l_train), len(idx_l_public))
+            
             # dirichlet sampling from this label
             proportions=np.random.dirichlet(np.repeat(alpha, NUM_USERS))
+            
             # re-balance proportions
             proportions=np.array([p * (n_per_user < max_samples_per_user) for p, n_per_user in zip(proportions, samples_per_user)])
             proportions=proportions / proportions.sum()
             proportions=(np.cumsum(proportions) * len(idx_l)).astype(int)[:-1]
+
             # participate data of that label
-            for u, new_idx in enumerate(np.split(idx_l, proportions)):
-                # add new idex to the user
+            # for u, new_idx in enumerate(np.split(idx_l, proportions)):
+            # pdb.set_trace()
+            for u, new_idx in enumerate(np.split(idx_l_train, proportions)):
+                # add new index to the user
+                # pdb.set_trace()
                 idx_batch[u][l] = new_idx.tolist()
                 samples_per_user[u] += len(idx_batch[u][l])
-        min_size=min(samples_per_user)
 
+            # similar operation for public dataset
+            # for new_idx in idx_l_public:
+            #     # add new index 
+            idx_batch_public[l] = idx_l_public
+                
+        min_size = min(samples_per_user)
+
+    # pdb.set_trace()
     ###### CREATE USER DATA SPLIT #######
     X = [[] for _ in range(NUM_USERS)]
     y = [[] for _ in range(NUM_USERS)]
+
+    Xpublic = []
+    ypublic = []
+
     Labels=[set() for _ in range(NUM_USERS)]
+
+    # pdb.set_trace()
+
     print("processing users...")
     for u, user_idx_batch in enumerate(idx_batch):
         for l, indices in user_idx_batch.items():
             if len(indices) == 0: continue
+            # pdb.set_trace()
+
             X[u] += data[l][indices].tolist()
             y[u] += (l * np.ones(len(indices))).tolist()
             Labels[u].add(l)
 
-    return X, y, Labels, idx_batch, samples_per_user
+    for l, indices in idx_batch_public.items():
+        if len(indices) == 0: continue
+        Xpublic += data[l][indices].tolist()
+        ypublic += (l * np.ones(len(indices))).tolist()
+        # Labels[u].add(l)
+
+    # for idx in idx_l_public:
+    #     X.append(data[idx])
+
+    # pdb.set_trace()
+    return X, y, Labels, idx_batch, samples_per_user, Xpublic, ypublic
 
 def divide_test_data(NUM_USERS, SRC_CLASSES, test_data, Labels, unknown_test):
     # Create TEST data for each user.
@@ -139,13 +221,23 @@ def main():
     path_prefix = f'u{args.n_user}c{args.n_class}-alpha{args.alpha}-ratio{args.sampling_ratio}'
 
     def process_user_data(mode, data, n_sample, SRC_CLASSES, Labels=None, unknown_test=0):
+        
         if mode == 'train':
-            X, y, Labels, idx_batch, samples_per_user  = devide_train_data(
-                data, n_sample, SRC_CLASSES, NUM_USERS, args.min_sample, args.alpha, args.sampling_ratio)
+            X, y, Labels, idx_batch, samples_per_user, Xpublic, ypublic = divide_train_data(data, 
+                                                                                        n_sample, 
+                                                                                        SRC_CLASSES, 
+                                                                                        NUM_USERS, 
+                                                                                        args.min_sample, 
+                                                                                        args.alpha, 
+                                                                                        args.sampling_ratio)
+
+
         if mode == 'test':
             assert Labels != None or unknown_test
             X, y = divide_test_data(NUM_USERS, SRC_CLASSES, data, Labels, unknown_test)
+                
         dataset={'users': [], 'user_data': {}, 'num_samples': []}
+
         for i in range(NUM_USERS):
             uname='f_{0:05d}'.format(i)
             dataset['users'].append(uname)
@@ -156,11 +248,24 @@ def main():
 
         print("{} #sample by user:".format(mode.upper()), dataset['num_samples'])
 
+
         data_path=f'./{path_prefix}/{mode}'
         if not os.path.exists(data_path):
             os.makedirs(data_path)
 
         data_path=os.path.join(data_path, "{}.".format(mode) + args.format)
+
+        if mode == 'train':
+            ##### save public data ######
+            public_dataset={'data': {}, 'num_samples': []}
+            public_dataset['data'] = {'x' : Xpublic, 'y': ypublic}
+            dataset['num_samples'].append(len(Xpublic))
+            public_data_path=f'./{path_prefix}/public'
+            if not os.path.exists(public_data_path):
+                os.makedirs(public_data_path)
+
+            public_data_path=os.path.join(public_data_path, "public." + args.format)
+
         if args.format == "json":
             raise NotImplementedError(
                 "json is not supported because the train_data/test_data uses the tensor instead of list and tensor cannot be saved into json.")
@@ -168,9 +273,20 @@ def main():
                 print(f"Dumping train data => {data_path}")
                 json.dump(dataset, outfile)
         elif args.format == "pt":
-            with open(data_path, 'wb') as outfile:
-                print(f"Dumping train data => {data_path}")
-                torch.save(dataset, outfile)
+
+            if mode == 'train':
+                with open(data_path, 'wb') as outfile:
+                    print(f"Dumping train data => {data_path}")
+                    torch.save(dataset, outfile)
+                with open(public_data_path, 'wb') as outfile:
+                    print(f"Dumping public data => {public_data_path}")
+                    torch.save(public_dataset, outfile)
+            
+            else:
+                with open(data_path, 'wb') as outfile:
+                    print(f"Dumping test data => {data_path}")
+                    torch.save(dataset, outfile)
+
         if mode == 'train':
             for u in range(NUM_USERS):
                 print("{} samples in total".format(samples_per_user[u]))
@@ -185,15 +301,22 @@ def main():
                 print("{} Labels/ {} Number of training samples for user [{}]:".format(len(Labels[u]), n_samples_for_u, u))
             return Labels, idx_batch, samples_per_user
 
-
     print(f"Reading source dataset.")
-    train_data, n_train_sample, SRC_N_CLASS = get_dataset(mode='train')
-    test_data, n_test_sample, SRC_N_CLASS = get_dataset(mode='test')
+    # get the pytorch dataset and arrage by classes  
+    train_data_by_class, n_train_sample, SRC_N_CLASS = get_dataset(mode='train')
+
+    # pdb.set_trace()
+
+    test_data_by_class, n_test_sample, SRC_N_CLASS = get_dataset(mode='test')
+    
+    # create the shuffled label list
     SRC_CLASSES=[l for l in range(SRC_N_CLASS)]
     random.shuffle(SRC_CLASSES)
+
     print("{} labels in total.".format(len(SRC_CLASSES)))
-    Labels, idx_batch, samples_per_user = process_user_data('train', train_data, n_train_sample, SRC_CLASSES)
-    process_user_data('test', test_data, n_test_sample, SRC_CLASSES, Labels=Labels, unknown_test=args.unknown_test)
+
+    Labels, idx_batch, samples_per_user = process_user_data('train', train_data_by_class, n_train_sample, SRC_CLASSES)
+    process_user_data('test', test_data_by_class, n_test_sample, SRC_CLASSES, Labels=Labels, unknown_test=args.unknown_test)
     print("Finish Generating User samples")
 
 if __name__ == "__main__":

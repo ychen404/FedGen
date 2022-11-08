@@ -23,10 +23,10 @@ class FedDistill(Server):
         #### creating users ####
         self.users = []
         for i in range(total_users):
-            id, train_data, test_data, label_info =read_user_data(i, data, dataset=args.dataset, count_labels=True)
-            self.total_train_samples+=len(train_data)
+            id, train_data, test_data, label_info = read_user_data(i, data, dataset=args.dataset, count_labels=True)
+            self.total_train_samples +=len(train_data)
             self.total_test_samples += len(test_data)
-            id, train, test=read_user_data(i, data, dataset=args.dataset)
+            id, train, test = read_user_data(i, data, dataset=args.dataset)
             user=UserFedDistill(
                 args, id, model, train_data, test_data, self.unique_labels, use_adam=False)
             self.users.append(user)

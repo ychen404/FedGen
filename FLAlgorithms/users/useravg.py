@@ -1,5 +1,6 @@
 import torch
 from FLAlgorithms.users.userbase import User
+import pdb
 
 class UserAVG(User):
     def __init__(self,  args, id, model, train_data, test_data, use_adam=False):
@@ -9,20 +10,24 @@ class UserAVG(User):
         for label, count in zip(labels, counts):
             self.label_counts[int(label)] += count
 
-
     def clean_up_counts(self):
         del self.label_counts
         self.label_counts = {int(label):1 for label in range(self.unique_labels)}
 
     def train(self, glob_iter, personalized=False, lr_decay=True, count_labels=True):
+        pdb.set_trace()
         self.clean_up_counts()
         self.model.train()
         for epoch in range(1, self.local_epochs + 1):
             self.model.train()
             for i in range(self.K):
+                pdb.set_trace()
                 result =self.get_next_train_batch(count_labels=count_labels)
                 X, y = result['X'], result['y']
                 if count_labels:
+                    # result['labels'] are the unique labels in this batch
+                    # result['counts'] are the number of samples belonging
+                    # to each unique label
                     self.update_label_counts(result['labels'], result['counts'])
 
                 self.optimizer.zero_grad()
@@ -32,6 +37,7 @@ class UserAVG(User):
                 self.optimizer.step()#self.plot_Celeb)
 
             # local-model <=== self.model
+            # this function is not even using its return value
             self.clone_model_paramenter(self.model.parameters(), self.local_model)
             if personalized:
                 self.clone_model_paramenter(self.model.parameters(), self.personalized_model_bar)

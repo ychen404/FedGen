@@ -16,6 +16,8 @@ class User:
     """
     def __init__(
             self, args, id, model, train_data, test_data, use_adam=False):
+        # model[0] is the actual nn.module model object
+        # model[1] is the model name
         self.model = copy.deepcopy(model[0])
         self.model_name = model[1]
         self.id = id  # integer
@@ -105,7 +107,6 @@ class User:
         for param in self.model.parameters():
             param.detach()
         return self.model.parameters()
-
 
     def clone_model_paramenter(self, param, clone_param):
         with torch.no_grad():
