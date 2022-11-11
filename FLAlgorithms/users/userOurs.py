@@ -2,7 +2,7 @@ import torch
 from FLAlgorithms.users.userbase import User
 import pdb
 
-class UserAVG(User):
+class UserOurs(User):
     def __init__(self,  args, id, model, train_data, test_data, use_adam=False):
         super().__init__(args, id, model, train_data, test_data, use_adam=use_adam)
 

@@ -112,7 +112,7 @@ class Net(nn.Module):
         else:
             restults['output'] = z
         if logit:
-            restults['logit']=z
+            restults['logit'] = z
         return restults
 
     def mapping(self, z_input, start_layer_idx=-1, logit=True):

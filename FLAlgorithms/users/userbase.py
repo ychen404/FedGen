@@ -9,6 +9,7 @@ import copy
 from utils.model_utils import get_dataset_name
 from utils.model_config import RUNCONFIGS
 from FLAlgorithms.optimizers.fedoptimizer import pFedIBOptimizer
+import pdb
 
 class User:
     """
@@ -16,9 +17,7 @@ class User:
     """
     def __init__(
             self, args, id, model, train_data, test_data, use_adam=False):
-        # model[0] is the actual nn.module model object
-        # model[1] is the model name
-        self.model = copy.deepcopy(model[0])
+        self.model = copy.deepcopy(model[0]) # model[0] is the actual nn.module model object, model[1] is the model name
         self.model_name = model[1]
         self.id = id  # integer
         self.train_samples = len(train_data)
@@ -52,15 +51,13 @@ class User:
         self.init_loss_fn()
         if use_adam:
             self.optimizer=torch.optim.Adam(
-                params=self.model.parameters(),
-                lr=self.learning_rate, betas=(0.9, 0.999),
-                eps=1e-08, weight_decay=1e-2, amsgrad=False)
+                            params=self.model.parameters(),
+                            lr=self.learning_rate, betas=(0.9, 0.999),
+                            eps=1e-08, weight_decay=1e-2, amsgrad=False)
         else:
             self.optimizer = pFedIBOptimizer(self.model.parameters(), lr=self.learning_rate)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=self.optimizer, gamma=0.99)
         self.label_counts = {}
-
-
 
 
     def init_loss_fn(self):
@@ -69,14 +66,16 @@ class User:
         self.ensemble_loss=nn.KLDivLoss(reduction="batchmean")
         self.ce_loss = nn.CrossEntropyLoss()
 
-    def set_parameters(self, model,beta=1):
+
+    def set_parameters(self, model, beta=1):
+        # pdb.set_trace()
         for old_param, new_param, local_param in zip(self.model.parameters(), model.parameters(), self.local_model):
             if beta == 1:
                 old_param.data = new_param.data.clone()
                 local_param.data = new_param.data.clone()
             else:
                 old_param.data = beta * new_param.data.clone() + (1 - beta)  * old_param.data.clone()
-                local_param.data = beta * new_param.data.clone() + (1-beta) * local_param.data.clone()
+                local_param.data = beta * new_param.data.clone() + (1 - beta) * local_param.data.clone()
 
     def set_prior_decoder(self, model, beta=1):
         for new_param, local_param in zip(model.personal_layers, self.prior_decoder):
@@ -140,8 +139,6 @@ class User:
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         return test_acc, loss, y.shape[0]
 
-
-
     def test_personalized_model(self):
         self.model.eval()
         test_acc = 0
@@ -175,6 +172,7 @@ class User:
             result['counts'] = counts
         return result
 
+
     def get_next_test_batch(self):
         try:
             # Samples a new batch for personalizing
@@ -185,16 +183,20 @@ class User:
             (X, y) = next(self.iter_testloader)
         return (X, y)
 
+
     def save_model(self):
         model_path = os.path.join("models", self.dataset)
         if not os.path.exists(model_path):
             os.makedirs(model_path)
         torch.save(self.model, os.path.join(model_path, "user_" + self.id + ".pt"))
 
+
     def load_model(self):
         model_path = os.path.join("models", self.dataset)
         self.model = torch.load(os.path.join(model_path, "server" + ".pt"))
-    
+
+
     @staticmethod
     def model_exists():
         return os.path.exists(os.path.join("models", "server" + ".pt"))
+

@@ -13,6 +13,9 @@ from torch.utils.data import DataLoader
 from FLAlgorithms.trainmodel.generator import Generator
 from utils.model_config import *
 import pdb
+
+
+
 METRICS = ['glob_acc', 'per_acc', 'glob_loss', 'per_loss', 'user_train_time', 'server_agg_time']
 
 
@@ -64,7 +67,6 @@ def read_data(dataset):
         test_data: dictionary of test data
     '''
 
-    pdb.set_trace()
     train_data_dir, test_data_dir, proxy_data_dir = get_data_dir(dataset)
     
     clients = []
@@ -294,3 +296,11 @@ def get_log_path(args, algorithm, seed, gen_batch_size=32):
         if int(gen_batch_size) != int(args.batch_size):
             alg += "_gb" + str(gen_batch_size)
     return alg
+
+if __name__ == "main":
+
+    import sys
+    
+    print(sys.path)
+    # model = create_model(model='cnn', dataset='mnist')
+    # pdb.set_trace()

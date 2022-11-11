@@ -1,4 +1,4 @@
-from FLAlgorithms.users.userpFedGen import UserpFedGen
+from FLAlgorithms.users.userOurs import UserOurs
 from FLAlgorithms.servers.serverbase import Server
 from utils.model_utils import read_data, read_user_data, aggregate_user_data, create_generative_model
 import torch
@@ -13,7 +13,7 @@ import pdb
 
 MIN_SAMPLES_PER_LABEL=1
 
-class FedGen(Server):
+class FedOurs(Server):
     def __init__(self, args, model, seed):
         super().__init__(args, model, seed)
 
@@ -28,27 +28,37 @@ class FedGen(Server):
 
         self.early_stop = 20  # stop using generated samples after 20 local epochs
         self.student_model = copy.deepcopy(self.model)
-        self.generative_model = create_generative_model(args.dataset, args.algorithm, self.model_name, args.embedding)
+
+        # self.generative_model = create_generative_model(args.dataset, args.algorithm, self.model_name, args.embedding)
+        
         pdb.set_trace()
 
         if not args.train:
-            print('number of generator parameteres: [{}]'.format(self.generative_model.get_number_of_parameters()))
-            print('number of model parameteres: [{}]'.format(self.model.get_number_of_parameters()))
-        self.latent_layer_idx = self.generative_model.latent_layer_idx
+            # print('number of generator parameteres: [{}]'.format(self.generative_model.get_number_of_parameters()))
+            print('number of model parameteres: [{}]'.format(self.model.get_number_of_parameters())) # param: 26434
+        
+        # self.latent_layer_idx = self.generative_model.latent_layer_idx
+        
         self.init_ensemble_configs()
-        print("latent_layer_idx: {}".format(self.latent_layer_idx))
-        print("label embedding {}".format(self.generative_model.embedding))
+        # print("latent_layer_idx: {}".format(self.latent_layer_idx))
+        # print("label embedding {}".format(self.generative_model.embedding))
         print("ensemeble learning rate: {}".format(self.ensemble_lr))
         print("ensemeble alpha = {}, beta = {}, eta = {}".format(self.ensemble_alpha, self.ensemble_beta, self.ensemble_eta))
-        print("generator alpha = {}, beta = {}".format(self.generative_alpha, self.generative_beta))
+        # print("generator alpha = {}, beta = {}".format(self.generative_alpha, self.generative_beta))
         self.init_loss_fn()
         self.train_data_loader, self.train_iter, self.available_labels = aggregate_user_data(data, args.dataset, self.ensemble_batch_size)
-        self.generative_optimizer = torch.optim.Adam(
-            params=self.generative_model.parameters(),
-            lr=self.ensemble_lr, betas=(0.9, 0.999),
-            eps=1e-08, weight_decay=self.weight_decay, amsgrad=False)
-        self.generative_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer=self.generative_optimizer, gamma=0.98)
+
+
+
+        # self.generative_optimizer = torch.optim.Adam(
+        #     params=self.generative_model.parameters(),
+        #     lr=self.ensemble_lr, betas=(0.9, 0.999),
+        #     eps=1e-08, weight_decay=self.weight_decay, amsgrad=False)
+        
+        
+        # self.generative_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        #     optimizer=self.generative_optimizer, gamma=0.98)
+        
         self.optimizer = torch.optim.Adam(
             params=self.model.parameters(),
             lr=self.ensemble_lr, betas=(0.9, 0.999),
@@ -58,16 +68,18 @@ class FedGen(Server):
         #### creating users ####
         self.users = []
         for i in range(total_users):
-            id, train_data, test_data, label_info =read_user_data(i, data, dataset=args.dataset, count_labels=True)
-            self.total_train_samples+=len(train_data)
+            id, train_data, test_data, label_info = read_user_data(i, data, dataset=args.dataset, count_labels=True)
+            self.total_train_samples += len(train_data)
             self.total_test_samples += len(test_data)
-            id, train, test=read_user_data(i, data, dataset=args.dataset)
-            user=UserpFedGen(
+            id, train, test = read_user_data(i, data, dataset=args.dataset)
+            
+            user=UserOurs(
                 args, id, model, self.generative_model,
                 train_data, test_data,
                 self.available_labels, self.latent_layer_idx, label_info,
                 use_adam=self.use_adam)
             self.users.append(user)
+        
         print("Number of Train/Test samples:", self.total_train_samples, self.total_test_samples)
         print("Data from {} users in total.".format(total_users))
         print("Finished creating FedAvg server.")
@@ -104,7 +116,11 @@ class FedGen(Server):
                 latent_layer_idx=self.latent_layer_idx,
                 verbose=True
             )
+
+            ### you need to change the aggregator ###
             self.aggregate_parameters()
+            #########################################
+            
             curr_timestamp=time.time()  # log  server-agg end time
             agg_time = curr_timestamp - self.timestamp
             self.metrics['server_agg_time'].append(agg_time)
@@ -139,7 +155,6 @@ class FedGen(Server):
                 gen_result=self.generative_model(y_input, latent_layer_idx=latent_layer_idx, verbose=True)
                 # get approximation of Z( latent) if latent set to True, X( raw image) otherwise
 
-                
                 gen_output, eps=gen_result['output'], gen_result['eps'] # gen_output is 32x32
                 
                 ##### get losses ####
@@ -150,9 +165,11 @@ class FedGen(Server):
                 ######### get teacher loss ############
                 teacher_loss=0
                 teacher_logit=0
+
                 for user_idx, user in enumerate(self.selected_users):
                     user.model.eval()
                     weight=self.label_weights[y][:, user_idx].reshape(-1, 1)
+                    # expand_weight.shape: [32, 10]
                     expand_weight=np.tile(weight, (1, self.unique_labels))
                     user_result_given_gen=user.model(gen_output, start_layer_idx=latent_layer_idx, logit=True)
                     user_output_logp_=F.log_softmax(user_result_given_gen['logit'], dim=1)

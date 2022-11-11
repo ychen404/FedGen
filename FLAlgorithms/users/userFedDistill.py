@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from FLAlgorithms.users.userbase import User
 from FLAlgorithms.optimizers.fedoptimizer import pFedIBOptimizer
+import pdb
 
 class LogitTracker():
     def __init__(self, unique_labels):
@@ -11,6 +12,7 @@ class LogitTracker():
         self.labels = [i for i in range(unique_labels)]
         self.label_counts = torch.ones(unique_labels) # avoid division by zero error
         self.logit_sums = torch.zeros((unique_labels,unique_labels) )
+
 
     def update(self, logits, Y):
         """
@@ -29,7 +31,7 @@ class LogitTracker():
 
 
     def avg(self):
-        res= self.logit_sums / self.label_counts.float().unsqueeze(1)
+        res = self.logit_sums / self.label_counts.float().unsqueeze(1)
         return res
 
 
@@ -64,10 +66,12 @@ class UserFedDistill(User):
             for i in range(self.K):
                 result =self.get_next_train_batch(count_labels=count_labels)
                 X, y = result['X'], result['y']
+                pdb.set_trace()
+
                 if count_labels:
                     self.update_label_counts(result['labels'], result['counts'])
                 self.optimizer.zero_grad()
-                result=self.model(X, logit=True)
+                result = self.model(X, logit=True)
                 output, logit = result['output'], result['logit']
                 self.logit_tracker.update(logit, y)
                 if self.global_logits != None:
@@ -93,6 +97,3 @@ class UserFedDistill(User):
             TRAIN_LOSS = TRAIN_LOSS.detach().numpy() / (self.local_epochs * self.K)
             info = "Train loss {:.2f}, Regularization loss {:.2f}".format(REG_LOSS, TRAIN_LOSS)
             print(info)
-
-
-

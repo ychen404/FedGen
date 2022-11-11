@@ -8,6 +8,8 @@ import torch.nn.functional as F
 import time
 import torch.nn as nn
 from utils.model_utils import get_log_path, METRICS
+import pdb
+
 
 class Server:
 
@@ -69,9 +71,11 @@ class Server:
 
     def send_parameters(self, mode='all', beta=1, selected=False):
         users = self.users
+        # pdb.set_trace()
         if selected:
             assert (self.selected_users is not None and len(self.selected_users) > 0)
             users = self.selected_users
+        
         for user in users:
             if mode == 'all': # share only subset of parameters
                 user.set_parameters(self.model,beta=beta)
