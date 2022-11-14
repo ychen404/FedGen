@@ -21,7 +21,7 @@ class UserAVG(User):
             self.model.train()
             for i in range(self.K):
                 # pdb.set_trace()
-                result =self.get_next_train_batch(count_labels=count_labels)
+                result = self.get_next_train_batch(count_labels=count_labels)
                 X, y = result['X'], result['y']
                 if count_labels:
                     # result['labels'] are the unique labels in this batch

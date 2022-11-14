@@ -31,12 +31,15 @@ def get_data_dir(dataset):
         proxy_data_dir = 'data/proxy_data/emnist-n10/'
 
     elif 'Mnist' in dataset:
-        dataset_=dataset.replace('alpha', '').replace('ratio', '').split('-')
-        alpha, ratio=dataset_[1], dataset_[2]
+        dataset_ = dataset.replace('alpha', '').replace('ratio', '').split('-')
+        alpha, ratio = dataset_[1], dataset_[2]
         #path_prefix=os.path.join('data', 'Mnist', 'u20alpha{}min10ratio{}'.format(alpha, ratio))
-        path_prefix=os.path.join('data', 'Mnist', 'u20c10-alpha{}-ratio{}'.format(alpha, ratio))
-        train_data_dir=os.path.join(path_prefix, 'train')
-        test_data_dir=os.path.join(path_prefix, 'test')
+        path_prefix = os.path.join('data', 'Mnist', 'u20c10-alpha{}-ratio{}'.format(alpha, ratio))
+        train_data_dir = os.path.join(path_prefix, 'train')
+        test_data_dir = os.path.join(path_prefix, 'test')
+      
+        public_data_dir = os.path.join(path_prefix, 'public') # add the public data path
+
         proxy_data_dir = 'data/proxy_data/mnist-n10/'
 
     elif 'celeb' in dataset.lower():
@@ -49,7 +52,7 @@ def get_data_dir(dataset):
 
     else:
         raise ValueError("Dataset not recognized.")
-    return train_data_dir, test_data_dir, proxy_data_dir
+    return train_data_dir, test_data_dir, proxy_data_dir, public_data_dir
 
 
 def read_data(dataset):
@@ -67,13 +70,14 @@ def read_data(dataset):
         test_data: dictionary of test data
     '''
 
-    train_data_dir, test_data_dir, proxy_data_dir = get_data_dir(dataset)
+    train_data_dir, test_data_dir, proxy_data_dir, public_data_dir = get_data_dir(dataset)
     
     clients = []
     groups = []
     train_data = {}
     test_data = {}
     proxy_data = {}
+    public_data = {}
 
     train_files = os.listdir(train_data_dir)
     train_files = [f for f in train_files if f.endswith('.json') or f.endswith(".pt")]
@@ -113,6 +117,22 @@ def read_data(dataset):
             raise TypeError("Data format not recognized: {}".format(file_path))
         test_data.update(cdata['user_data'])
 
+    ######## public data ########
+    if public_data_dir and os.path.exists(public_data_dir):
+        public_files = os.listdir(public_data_dir)
+        public_files = [f for f in public_files if f.endswith('.json') or f.endswith(".pt")]
+        for f in public_files:
+            file_path = os.path.join(public_data_dir, f)
+            if file_path.endswith(".pt"):
+                with open(file_path, 'rb') as inf:
+                    cdata = torch.load(inf)
+            elif file_path.endswith(".json"):
+                with open(file_path, 'r') as inf:
+                    cdata = json.load(inf)
+            else:
+                raise TypeError("Data format not recognized: {}".format(file_path))
+            public_data.update(cdata['data'])
+
 
     if proxy_data_dir and os.path.exists(proxy_data_dir):
         proxy_files=os.listdir(proxy_data_dir)
@@ -129,7 +149,7 @@ def read_data(dataset):
                 raise TypeError("Data format not recognized: {}".format(file_path))
             proxy_data.update(cdata['user_data'])
 
-    return clients, groups, train_data, test_data, proxy_data
+    return clients, groups, train_data, test_data, proxy_data, public_data
 
 
 def read_proxy_data(proxy_data, dataset, batch_size):
@@ -202,6 +222,15 @@ def read_user_data(index, data, dataset='', count_labels=False):
         return id, train_data, test_data, label_info
     return id, train_data, test_data
 
+def read_public_data(data, dataset=''):
+    """
+    It is too messy to combine with the other data
+    """
+    public_data = data[-1]
+    X_public, y_public = convert_data(public_data['x'], public_data['y'], dataset=dataset)
+    public_data = [(x, y) for x, y in zip(X_public, y_public)]
+
+    return public_data
 
 def get_dataset_name(dataset):
     dataset=dataset.lower()

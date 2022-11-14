@@ -13,7 +13,7 @@ class FedAvg(Server):
 
         # Initialize data for all  users
         data = read_data(args.dataset)
-        # data contains: clients, groups, train_data, test_data, proxy_data
+        # data contains: clients, groups, train_data, test_data, proxy_data, public_data
 
         total_users = len(data[0])
         

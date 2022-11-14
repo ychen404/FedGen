@@ -172,7 +172,6 @@ class User:
             result['counts'] = counts
         return result
 
-
     def get_next_test_batch(self):
         try:
             # Samples a new batch for personalizing
