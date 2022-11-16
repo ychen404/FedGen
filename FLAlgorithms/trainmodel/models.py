@@ -70,7 +70,6 @@ class Net(nn.Module):
         named_layers[fc_layer_name] = [fc_layer.weight, fc_layer.bias]
         return named_layers, layers, layer_names
 
-
     def get_parameters_by_keyword(self, keyword='encode'):
         params=[]
         for name, layer in zip(self.layer_names, self.layers):
@@ -91,7 +90,31 @@ class Net(nn.Module):
     def get_learnable_params(self):
         return self.get_encoder() + self.get_decoder()
 
-    def forward(self, x, start_layer_idx = 0, logit=False):
+    # def forward(self, x, start_layer_idx = 0, logit=False):
+    #     """
+    #     :param x:
+    #     :param logit: return logit vector before the last softmax layer
+    #     :param start_layer_idx: if 0, conduct normal forward; otherwise, forward from the last few layers (see mapping function)
+    #     :return:
+    #     """
+    #     if start_layer_idx < 0: #
+    #         return self.mapping(x, start_layer_idx=start_layer_idx, logit=logit)
+    #     restults={}
+    #     z = x
+    #     for idx in range(start_layer_idx, len(self.layers)):
+    #         layer_name = self.layer_names[idx]
+    #         layer = self.layers[idx]
+    #         z = layer(z)
+
+    #     if self.output_dim > 1:
+    #         restults['output'] = F.log_softmax(z, dim=1)
+    #     else:
+    #         restults['output'] = z
+    #     if logit:
+    #         restults['logit'] = z
+    #     return restults
+
+    def forward(self, x, start_layer_idx = 0, penultimate=False, logit=False):
         """
         :param x:
         :param logit: return logit vector before the last softmax layer
@@ -100,20 +123,24 @@ class Net(nn.Module):
         """
         if start_layer_idx < 0: #
             return self.mapping(x, start_layer_idx=start_layer_idx, logit=logit)
-        restults={}
+        
+        results={}
         z = x
         for idx in range(start_layer_idx, len(self.layers)):
             layer_name = self.layer_names[idx]
             layer = self.layers[idx]
             z = layer(z)
+            if penultimate and idx == (len(self.layers) - 2):
+                results['penultimate'] = z
 
         if self.output_dim > 1:
-            restults['output'] = F.log_softmax(z, dim=1)
+            results['output'] = F.log_softmax(z, dim=1)
         else:
-            restults['output'] = z
+            results['output'] = z
         if logit:
-            restults['logit'] = z
-        return restults
+            results['logit'] = z
+
+        return results
 
     def mapping(self, z_input, start_layer_idx=-1, logit=True):
         z = z_input

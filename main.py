@@ -6,6 +6,8 @@ from FLAlgorithms.servers.serverFedDistill import FedDistill
 from FLAlgorithms.servers.serverpFedGen import FedGen
 from FLAlgorithms.servers.serverpFedEnsemble import FedEnsemble
 from FLAlgorithms.servers.serverOurs import FedOurs
+from FLAlgorithms.servers.serverDF import FedDF
+
 from utils.model_utils import create_model
 from utils.plot_utils import *
 import torch
@@ -27,6 +29,8 @@ def create_server_n_user(args, i):
         server = FedEnsemble(args, model, i)
     elif 'FedOurs' in args.algorithm:
         server=FedOurs(args, model, i)
+    elif 'FedDF' in args.algorithm:
+        server=FedDF(args, model, i)
     else:
         print("Algorithm {} has not been implemented.".format(args.algorithm))
         exit()

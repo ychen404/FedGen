@@ -73,6 +73,19 @@
 #                 --personal_learning_rate 0.01 \
 #                 --times 1
 
+# FedDF
+# python3 main.py --dataset Mnist-alpha0.1-ratio0.5 \
+#                 --algorithm FedDF \
+#                 --batch_size 32 \
+#                 --num_glob_iters 200 \
+#                 --local_epochs 20 \
+#                 --num_users 10 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --times 1
+
 # Ours
 python3 main.py --dataset Mnist-alpha0.1-ratio0.5 \
                 --algorithm FedOurs \
@@ -84,4 +97,4 @@ python3 main.py --dataset Mnist-alpha0.1-ratio0.5 \
                 --learning_rate 0.01 \
                 --model cnn \
                 --personal_learning_rate 0.01 \
-                --times 1
+                --times 3

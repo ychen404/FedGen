@@ -1,4 +1,4 @@
-from FLAlgorithms.users.userOurs import UserOurs
+from FLAlgorithms.users.userDF import UserDF
 from FLAlgorithms.servers.serverbase import Server
 from utils.model_utils import read_data, read_user_data, aggregate_user_data, create_generative_model, read_public_data
 import torch
@@ -11,11 +11,11 @@ import os
 import copy
 import time
 import pdb
-from copy import deepcopy
+
 
 MIN_SAMPLES_PER_LABEL=1
 
-class FedOurs(Server):
+class FedDF(Server):
     def __init__(self, args, model, seed):
         super().__init__(args, model, seed)
 
@@ -34,13 +34,7 @@ class FedOurs(Server):
         public_data = read_public_data(data, args.dataset)
         self.publicloader = DataLoader(public_data, self.batch_size, shuffle=True, drop_last=True)
         self.iter_publicloader = iter(self.publicloader)
-
-        if "mnist" in args.dataset.lower():
-            self.total_classes = 10
-            # add the support of other dataset later
-        else:
-            raise NotImplementedError("Not yet supported")
-
+        
         if not args.train:
             # print('number of generator parameteres: [{}]'.format(self.generative_model.get_number_of_parameters()))
             print('number of model parameteres: [{}]'.format(self.model.get_number_of_parameters())) # param: 26434
@@ -66,7 +60,7 @@ class FedOurs(Server):
         self.users = []
         for i in range(total_users):
             id, train_data , test_data = read_user_data(i, data, dataset=args.dataset)
-            user = UserOurs(args, id, model, train_data, test_data, use_adam=False)
+            user = UserDF(args, id, model, train_data, test_data, use_adam=False)
             self.users.append(user)
             self.total_train_samples += user.train_samples
         
@@ -122,27 +116,6 @@ class FedOurs(Server):
         result = {'X': X, 'y': y}
         return result
 
-
-
-    def return_edge_norm(self, edge_out, emb, embDim):        
-        nLab = self.total_classes
-        emb = emb.data.cpu().numpy()
-        batchProbs = F.softmax(edge_out, dim=1).data.cpu().numpy()
-        maxInds = np.argmax(batchProbs,1)
-        batch_size = edge_out.shape[0]
-        embedding = np.zeros([batch_size, embDim * nLab])
-        idxs = np.arange(batch_size)
-        
-        for j in range(batch_size):
-            for c in range(nLab):
-                if c == maxInds[j]:
-                    embedding[idxs[j]][embDim * c : embDim * (c+1)] = deepcopy(emb[j]) * (1 - batchProbs[j][c])
-                else:
-                    embedding[idxs[j]][embDim * c : embDim * (c+1)] = deepcopy(emb[j]) * (-1 * batchProbs[j][c])
-        emb_norm = np.linalg.norm(embedding, 2, axis=1)
-        return emb_norm
-
-
     def distill(self, args, n_iters, student_model):
         # self.generative_model.train()
         student_model.train()
@@ -164,12 +137,8 @@ class FedOurs(Server):
             # diversity_loss=self.generative_model.diversity_loss(eps, gen_output)  # encourage different outputs
 
             ######### get teacher loss ############
-            teacher_loss = 0
-            teacher_penultimate_norm_sum = 0
-            teacher_logit = 0
-            avg_teacher_logit = 0
-            sum_sum = 0
-            temp_output = {}
+            teacher_loss=0
+            teacher_logit=0
             
             result = self.get_next_public_batch()
             X, y = result['X'], result['y']
@@ -182,18 +151,8 @@ class FedOurs(Server):
                 
                 # the public dataset here
                 X, y = result['X'], result['y']
-                # user_result=user.model(X, logit=True)
-                user_result = user.model(X, penultimate=True, logit=True)
-                
-                # The penultimate layer output has a shape of [32, 32], so the second element is the dim
-                penDim = user_result['penultimate'].shape[1]
-                emb_norm = self.return_edge_norm(user_result['logit'], user_result['penultimate'], penDim)
-                
-                # emb_norm is in np.ndarray, convert to torch.tensor for consistency
-                temp_output[user_idx] = {'embnorm': torch.tensor(emb_norm), 'logit': user_result['logit']} 
-                
-                # pdb.set_trace()
-                
+                user_result=user.model(X, logit=True) 
+
                 # user_output_logp_= F.log_softmax(user_result['logit'], dim=1)
                 
                 # teacher_loss_=torch.mean( \
@@ -201,29 +160,10 @@ class FedOurs(Server):
                 #     torch.tensor(weight, dtype=torch.float32))
                 # teacher_loss+=teacher_loss_
                 # teacher_logit += user_result['logit'] * torch.tensor(expand_weight, dtype=torch.float32)
-                # Accumulate the penultimate output here 
-                avg_teacher_logit += user_result['logit'] * torch.tensor( 1 / len(self.selected_users))
-                teacher_penultimate_norm_sum += emb_norm # calculate norm sum
-
-
-            # weight equation: weight[i] = |N_i - sum(N_i)| / sum(|N_i - sum(Ni)|)
-            # The top part of the fraction is calculated in the teacher_penultimate_norm_sum
-            # The bottom part of the fraction is calculated by sum_sum
-            # add another loop to allocate the weights and calculate the weighted sum
-
-            for user_idx, user in enumerate(self.selected_users):
-                sum_sum += torch.abs(temp_output[user_idx]['embnorm'] - teacher_penultimate_norm_sum)
-
-            # put together for the weight of each teacher
-            for user_idx, user in enumerate(self.selected_users):
-                norm_weight = torch.abs(temp_output[user_idx]['embnorm'] - teacher_penultimate_norm_sum) / sum_sum
-                norm_weight = norm_weight.reshape(norm_weight.shape[0],1)
-                teacher_logit += user_result['logit'] * torch.tensor(norm_weight, dtype=torch.float32)
-            
+                teacher_logit += user_result['logit'] * torch.tensor( 1 / len(self.selected_users) )
+                
             ######### get student loss ############
             student_output=student_model(X, logit=True)
-            
-            # student_output=student_model(X, penultimate=True, logit=True)
             student_loss=F.kl_div(F.log_softmax(student_output['logit'], dim=1), F.softmax(teacher_logit, dim=1))
 
             # if self.ensemble_beta > 0:
