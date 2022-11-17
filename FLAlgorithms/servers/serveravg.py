@@ -33,7 +33,6 @@ class FedAvg(Server):
         for glob_iter in range(self.num_glob_iters):
             print("\n\n-------------Round number: ",glob_iter, " -------------\n\n")
             self.selected_users = self.select_users(glob_iter,self.num_users)
-            pdb.set_trace
             self.send_parameters(mode=self.mode) # send parameters from server model to client models
             self.evaluate() # evaluate all the user models?? the server model is equivalent to all the client models 
             self.timestamp = time.time() # log user-training start time

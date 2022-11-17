@@ -20,6 +20,7 @@ class UserAVG(User):
         for epoch in range(1, self.local_epochs + 1):
             self.model.train()
             for i in range(self.K):
+                
                 # pdb.set_trace()
                 result = self.get_next_train_batch(count_labels=count_labels)
                 X, y = result['X'], result['y']
@@ -43,4 +44,6 @@ class UserAVG(User):
             # local-model ===> self.model
             #self.clone_model_paramenter(self.local_model, self.model.parameters())
         if lr_decay:
-            self.lr_scheduler.step(glob_iter)
+            # self.lr_scheduler.step(glob_iter)
+            self.lr_scheduler.step()
+

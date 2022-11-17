@@ -28,6 +28,8 @@ def get_data_dir(dataset):
         path_prefix = os.path.join('data', 'EMnist', f'u20-{types}-alpha{alpha}-ratio{ratio}')
         train_data_dir=os.path.join(path_prefix, 'train')
         test_data_dir=os.path.join(path_prefix, 'test')
+        public_data_dir = os.path.join(path_prefix, 'public') # add the public data path
+
         proxy_data_dir = 'data/proxy_data/emnist-n10/'
 
     elif 'Mnist' in dataset:
@@ -48,6 +50,7 @@ def get_data_dir(dataset):
         path_prefix = os.path.join('data', 'CelebA', 'user{}-agg{}'.format(user,agg_user))
         train_data_dir=os.path.join(path_prefix, 'train')
         test_data_dir=os.path.join(path_prefix, 'test')
+        public_data_dir = os.path.join(path_prefix, 'public') # add the public data path
         proxy_data_dir=os.path.join('/user500/', 'proxy')
 
     else:

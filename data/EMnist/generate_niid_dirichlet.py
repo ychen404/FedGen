@@ -60,40 +60,76 @@ def sample_class(SRC_N_CLASS, NUM_LABELS, user_id, label_random=False):
     else:
         return [(user_id + j) % SRC_N_CLASS for j in range(NUM_LABELS)]
 
-def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=0.5, sampling_ratio=0.5):
+def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=0.5, sampling_ratio=0.5, public_ratio=0.1):
     min_sample = len(SRC_CLASSES) * min_sample
     min_size = 0 # track minimal samples per user
     ###### Determine Sampling #######
     while min_size < min_sample:
         print("Try to find valid data separation")
+        print(f"min_size: {min_size}, min_sample: {min_sample}")
+
         idx_batch=[{} for _ in range(NUM_USERS)]
+        idx_batch_public = {}
+
         samples_per_user = [0 for _ in range(NUM_USERS)]
         max_samples_per_user = sampling_ratio * n_sample / NUM_USERS
+        
+        count = 0
         for l in SRC_CLASSES:
+            
             # get indices for all that label
             idx_l = [i for i in range(len(data[l]))]
+
             np.random.shuffle(idx_l)
+            print("1")
+            
             if sampling_ratio < 1:
                 samples_for_l = min(max_samples_per_user, int(sampling_ratio * len(data[l])))
-                idx_l = idx_l[:samples_for_l]
-                print(l, len(data[l]), len(idx_l))
+
+                # add the support of creating public data
+                public_samples_for_l = int(len(data[l]) * public_ratio)
+
+                # use the first samples_for_l samples as training
+                # idx_l = idx_l[:samples_for_l]
+                idx_l_train = idx_l[:samples_for_l]
+
+                # take the public portion starting from the samples for train
+                idx_l_public = idx_l[samples_for_l:(samples_for_l + public_samples_for_l)]
+                # print(l, len(data[l]), len(idx_l))
+                print(l, len(data[l]), len(idx_l_train), len(idx_l_public))
+
             # dirichlet sampling from this label
             proportions=np.random.dirichlet(np.repeat(alpha, NUM_USERS))
             # re-balance proportions
             proportions=np.array([p * (n_per_user < max_samples_per_user) for p, n_per_user in zip(proportions, samples_per_user)])
             proportions=proportions / proportions.sum()
-            proportions=(np.cumsum(proportions) * len(idx_l)).astype(int)[:-1]
+            proportions=(np.cumsum(proportions) * len(idx_l_train)).astype(int)[:-1]
+            
             # participate data of that label
-            for u, new_idx in enumerate(np.split(idx_l, proportions)):
+            # for u, new_idx in enumerate(np.split(idx_l, proportions)):
+            #     # add new idex to the user
+            #     idx_batch[u][l] = new_idx.tolist()
+            #     samples_per_user[u] += len(idx_batch[u][l])
+
+            for u, new_idx in enumerate(np.split(idx_l_train, proportions)):
                 # add new idex to the user
                 idx_batch[u][l] = new_idx.tolist()
                 samples_per_user[u] += len(idx_batch[u][l])
+
+            # add new index of the public dataset
+            idx_batch_public[l] = idx_l_public
+
         min_size=min(samples_per_user)
 
     ###### CREATE USER DATA SPLIT #######
     X = [[] for _ in range(NUM_USERS)]
     y = [[] for _ in range(NUM_USERS)]
     Labels=[set() for _ in range(NUM_USERS)]
+
+    # store public data and label
+    Xpublic = []
+    ypublic = []
+
     print("processing users...")
     for u, user_idx_batch in enumerate(idx_batch):
         for l, indices in user_idx_batch.items():
@@ -102,7 +138,12 @@ def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=
             y[u] += (l * np.ones(len(indices))).tolist()
             Labels[u].add(l)
 
-    return X, y, Labels, idx_batch, samples_per_user
+    for l, indices in idx_batch_public.items():
+        if len(indices) == 0: continue
+        Xpublic += data[l][indices].tolist()
+        ypublic += (l * np.ones(len(indices))).tolist()
+
+    return X, y, Labels, idx_batch, samples_per_user, Xpublic, ypublic
 
 
 def divide_test_data(NUM_USERS, SRC_CLASSES, test_data, Labels, unknown_test):
@@ -151,12 +192,28 @@ def main():
 
     def process_user_data(mode, data, n_sample, SRC_CLASSES, Labels=None, unknown_test=0):
         if mode == 'train':
-            X, y, Labels, idx_batch, samples_per_user = divide_train_data(
-                data, n_sample, SRC_CLASSES, NUM_USERS, args.min_sample, args.alpha, args.sampling_ratio)
+            X, y, Labels, idx_batch, samples_per_user, Xpublic, ypublic = divide_train_data(data, 
+                                                                                            n_sample, 
+                                                                                            SRC_CLASSES, 
+                                                                                            NUM_USERS, 
+                                                                                            args.min_sample, 
+                                                                                            args.alpha, 
+                                                                                            args.sampling_ratio)
+
+            # X, y, Labels, idx_batch, samples_per_user, Xpublic, ypublic = divide_train_data(data, 
+            #                                                                                 n_sample, 
+            #                                                                                 SRC_CLASSES, 
+            #                                                                                 NUM_USERS, 
+            #                                                                                 args.min_sample, 
+            #                                                                                 args.alpha, 
+            #                                                                                 args.sampling_ratio)
+
         if mode == 'test':
             assert Labels != None or unknown_test
             X, y = divide_test_data(NUM_USERS, SRC_CLASSES, data, Labels, unknown_test)
+
         dataset={'users': [], 'user_data': {}, 'num_samples': []}
+        
         for i in range(NUM_USERS):
             uname='f_{0:05d}'.format(i)
             dataset['users'].append(uname)
@@ -172,6 +229,18 @@ def main():
             os.makedirs(data_path)
 
         data_path=os.path.join(data_path, "{}.".format(mode) + args.format)
+        
+        if mode == 'train':
+            ##### save public data ######
+            public_dataset={'data': {}, 'num_samples': []}
+            public_dataset['data'] = {'x' : Xpublic, 'y': ypublic}
+            dataset['num_samples'].append(len(Xpublic))
+            public_data_path=f'./{path_prefix}/public'
+            if not os.path.exists(public_data_path):
+                os.makedirs(public_data_path)
+
+            public_data_path=os.path.join(public_data_path, "public." + args.format)
+                
         if args.format == "json":
             raise NotImplementedError(
                 "json is not supported because the train_data/test_data uses the tensor instead of list and tensor cannot be saved into json.")
@@ -196,7 +265,7 @@ def main():
                 print("{} Labels/ {} Number of training samples for user [{}]:".format(len(Labels[u]), n_samples_for_u, u))
             return Labels, idx_batch, samples_per_user
 
-    pdb.set_trace()
+    # pdb.set_trace()
     print(f"Reading source dataset.")
     train_data, n_train_sample, SRC_N_CLASS = get_dataset(mode='train', split=args.split)
     test_data, n_test_sample, SRC_N_CLASS = get_dataset(mode='test', split=args.split)

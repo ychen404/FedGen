@@ -9,6 +9,8 @@ import pdb
 # dir = 'results/EMnist_alpha0.05_ratio0.1'
 
 dir = 'results/Mnist-alpha0.1-ratio0.5'
+# dir = 'results/ours'
+
 # dir = sys.argv[1]
 files = []
 for file in glob.glob(os.path.join(dir, '*.h5')):
@@ -25,6 +27,7 @@ FedEnsemble_res = []
 FedGen_res = []
 FedDistill_res = []
 FedProx_res = []
+FedDF_res = []
 FedOurs_res = []
 
 for file in files:
@@ -42,8 +45,11 @@ for file in files:
             FedDistill_res.append(np.max(data))
         if 'fedprox' in name.lower():        
             FedProx_res.append(np.max(data))
+        if 'feddf' in name.lower():        
+            FedDF_res.append(np.max(data))
         if 'fedours' in name.lower():        
             FedOurs_res.append(np.max(data))
+
 
 print(f"method, mean, std")
 print(f"FedAvg, {100 * np.mean(np.array(fedavg_res))}, {100 * np.std(np.array(fedavg_res))}")
@@ -51,6 +57,5 @@ print(f"FedProx, {100 * np.mean(np.array(FedProx_res))}, {100 * np.std(np.array(
 print(f"FedEnsemble, {100 * np.mean(np.array(FedEnsemble_res))}, {100 * np.std(np.array(FedEnsemble_res))}")
 print(f"FedDistill, {100 * np.mean(np.array(FedDistill_res))}, {100 * np.std(np.array(FedDistill_res))}")
 print(f"FedGen, {100 * np.mean(np.array(FedGen_res))}, {100 * np.std(np.array(FedGen_res))}")
+print(f"FedDF, {100 * np.mean(np.array(FedDF_res))}, {100 * np.std(np.array(FedDF_res))}")
 print(f"FedOurs, {100 * np.mean(np.array(FedOurs_res))}, {100 * np.std(np.array(FedOurs_res))}")
-
-    

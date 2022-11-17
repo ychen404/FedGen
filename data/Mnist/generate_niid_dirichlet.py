@@ -10,6 +10,9 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 import pdb
 
+# sample command
+# python3 generate_niid_dirichlet.py --n_class 10 --sampling_ratio 0.5 --alpha 0.1 --n_user 20
+
 random.seed(42)
 np.random.seed(42)
 
@@ -33,9 +36,6 @@ def get_dataset(mode='train'):
     # full batch
     trainloader = DataLoader(dataset, batch_size=n_sample, shuffle=False)
     # trainloader = DataLoader(private_dataset, batch_size=n_sample, shuffle=False)
-
-    # public data
-    # publicloader = DataLoader(public_dataset, batch_size=128, shuffle=False)
 
     print("Loading data from storage ...")
     
@@ -246,7 +246,6 @@ def main():
                 print(f"Dumping train data => {data_path}")
                 json.dump(dataset, outfile)
         elif args.format == "pt":
-
             if mode == 'train':
                 with open(data_path, 'wb') as outfile:
                     print(f"Dumping train data => {data_path}")
@@ -286,6 +285,7 @@ def main():
     print("{} labels in total.".format(len(SRC_CLASSES)))
 
     Labels, idx_batch, samples_per_user = process_user_data('train', train_data_by_class, n_train_sample, SRC_CLASSES)
+    print("Done processing training data")
     process_user_data('test', test_data_by_class, n_test_sample, SRC_CLASSES, Labels=Labels, unknown_test=args.unknown_test)
     print("Finish Generating User samples")
 
