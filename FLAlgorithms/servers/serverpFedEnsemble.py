@@ -46,6 +46,6 @@ class FedEnsemble(Server):
                     personalized=False, lr_decay=True, count_labels=True)
             self.aggregate_parameters()
             self.evaluate_ensemble(selected=False)
-
+        
         self.save_results(args)
         self.save_model()

@@ -22,6 +22,7 @@ METRICS = ['glob_acc', 'per_acc', 'glob_loss', 'per_loss', 'user_train_time', 's
 def get_data_dir(dataset):
     if 'EMnist' in dataset:
         #EMnist-alpha0.1-ratio0.1-0-letters
+        
         dataset_=dataset.replace('alpha', '').replace('ratio', '').split('-')
         alpha, ratio =dataset_[1], dataset_[2]
         types = 'letters'
@@ -29,7 +30,7 @@ def get_data_dir(dataset):
         train_data_dir=os.path.join(path_prefix, 'train')
         test_data_dir=os.path.join(path_prefix, 'test')
         public_data_dir = os.path.join(path_prefix, 'public') # add the public data path
-
+        
         proxy_data_dir = 'data/proxy_data/emnist-n10/'
 
     elif 'Mnist' in dataset:
@@ -229,6 +230,7 @@ def read_public_data(data, dataset=''):
     """
     It is too messy to combine with the other data
     """
+
     public_data = data[-1]
     X_public, y_public = convert_data(public_data['x'], public_data['y'], dataset=dataset)
     public_data = [(x, y) for x, y in zip(X_public, y_public)]
@@ -251,8 +253,10 @@ def get_dataset_name(dataset):
 
 def create_generative_model(dataset, algorithm='', model='cnn', embedding=False):
     passed_dataset=get_dataset_name(dataset)
-    assert any([alg in algorithm for alg in ['FedGen', 'FedGen']])
-    if 'FedGen' in algorithm:
+    # assert any([alg in algorithm for alg in ['FedGen', 'FedGen']])
+    assert any([alg in algorithm for alg in ['FedGen', 'GenPlusDF']])
+
+    if 'FedGen' in algorithm or 'GenPlusDF' in algorithm:
         # temporary roundabout to figure out the sensitivity of the generator network & sampling size
         if 'cnn' in algorithm:
             gen_model = algorithm.split('-')[1]

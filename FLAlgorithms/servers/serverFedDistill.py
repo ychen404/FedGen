@@ -52,7 +52,7 @@ class FedDistill(Server):
             self.aggregate_logits(selected=False) # aggregate label-wise logit vector
 
         for glob_iter in range(self.num_glob_iters):
-            pdb.set_trace()
+            # pdb.set_trace()
             print("\n\n-------------Round number: ",glob_iter, " -------------\n\n")
             self.selected_users, self.user_idxs=self.select_users(glob_iter, self.num_users, return_idx=True)
             if self.share_model:
@@ -70,14 +70,14 @@ class FedDistill(Server):
             self.aggregate_logits() # aggregate label-wise logit vector
             self.evaluate_personalized_model()
 
-        pdb.set_trace()
+        # pdb.set_trace()
         self.save_results(args)
         self.save_model()
 
     def aggregate_logits(self, selected=True):
         user_logits = 0
         users = self.selected_users if selected else self.users
-        pdb.set_trace()
+        # pdb.set_trace()
         for user in users:
             user_logits += user.logit_tracker.avg()
         self.user_logits = user_logits / len(users)

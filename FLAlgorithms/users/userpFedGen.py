@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from FLAlgorithms.users.userbase import User
+import pdb
 
 class UserpFedGen(User):
     def __init__(self,
@@ -15,7 +16,6 @@ class UserpFedGen(User):
         self.latent_layer_idx = latent_layer_idx
         self.available_labels = available_labels
         self.label_info=label_info
-
 
     def exp_lr_scheduler(self, epoch, decay=0.98, init_lr=0.1, lr_decay_epoch=1):
         """Decay learning rate by a factor of 0.95 every lr_decay_epoch epochs."""
@@ -43,6 +43,7 @@ class UserpFedGen(User):
                 samples =self.get_next_train_batch(count_labels=True)
                 X, y = samples['X'], samples['y']
                 self.update_label_counts(samples['labels'], samples['counts'])
+
                 model_result=self.model(X, logit=True)
                 user_output_logp = model_result['output']
                 predictive_loss=self.loss(user_output_logp, y)
@@ -51,6 +52,7 @@ class UserpFedGen(User):
                 if regularization and epoch < early_stop:
                     generative_alpha=self.exp_lr_scheduler(glob_iter, decay=0.98, init_lr=self.generative_alpha)
                     generative_beta=self.exp_lr_scheduler(glob_iter, decay=0.98, init_lr=self.generative_beta)
+
                     ### get generator output(latent representation) of the same label
                     gen_output=self.generative_model(y, latent_layer_idx=self.latent_layer_idx)['output']
                     logit_given_gen=self.model(gen_output, start_layer_idx=self.latent_layer_idx, logit=True)['logit']
@@ -62,9 +64,11 @@ class UserpFedGen(User):
                     gen_result=self.generative_model(sampled_y, latent_layer_idx=self.latent_layer_idx)
                     gen_output=gen_result['output'] # latent representation when latent = True, x otherwise
                     user_output_logp =self.model(gen_output, start_layer_idx=self.latent_layer_idx)['output']
+                    # pdb.set_trace()
                     teacher_loss =  generative_alpha * torch.mean(
                         self.generative_model.crossentropy_loss(user_output_logp, sampled_y)
                     )
+
                     # this is to further balance oversampled down-sampled synthetic data
                     gen_ratio = self.gen_batch_size / self.batch_size
                     loss=predictive_loss + gen_ratio * teacher_loss + user_latent_loss

@@ -6,9 +6,9 @@ from FLAlgorithms.servers.serverpFedEnsemble import FedEnsemble
 import pdb
 
 # print(sys.argv[1])
-# dir = 'results/EMnist_alpha0.05_ratio0.1'
+# dir = 'results/EMnist_alpha10.0_ratio0.1'
 
-dir = 'results/Mnist-alpha0.1-ratio0.5'
+dir = 'results/EMnist-alpha100.0-ratio0.1'
 # dir = 'results/ours'
 
 # dir = sys.argv[1]

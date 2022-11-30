@@ -7,6 +7,7 @@ from FLAlgorithms.servers.serverpFedGen import FedGen
 from FLAlgorithms.servers.serverpFedEnsemble import FedEnsemble
 from FLAlgorithms.servers.serverOurs import FedOurs
 from FLAlgorithms.servers.serverDF import FedDF
+from FLAlgorithms.servers.serverpFedGenDF import FedDFGen
 
 from utils.model_utils import create_model
 from utils.plot_utils import *
@@ -31,11 +32,12 @@ def create_server_n_user(args, i):
         server=FedOurs(args, model, i)
     elif 'FedDF' in args.algorithm:
         server=FedDF(args, model, i)
+    elif 'GenPlusDF' in args.algorithm:
+        server=FedDFGen(args, model, i)
     else:
         print("Algorithm {} has not been implemented.".format(args.algorithm))
         exit()
     return server
-
 
 def run_job(args, i):
     torch.manual_seed(i)

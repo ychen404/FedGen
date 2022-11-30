@@ -66,7 +66,7 @@ class UserFedDistill(User):
             for i in range(self.K):
                 result =self.get_next_train_batch(count_labels=count_labels)
                 X, y = result['X'], result['y']
-                pdb.set_trace()
+                # pdb.set_trace()
 
                 if count_labels:
                     self.update_label_counts(result['labels'], result['counts'])

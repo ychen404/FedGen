@@ -248,9 +248,19 @@ def main():
                 print(f"Dumping train data => {data_path}")
                 json.dump(dataset, outfile)
         elif args.format == "pt":
-            with open(data_path, 'wb') as outfile:
-                print(f"Dumping train data => {data_path}")
-                torch.save(dataset, outfile)
+            if mode == 'train':
+                with open(data_path, 'wb') as outfile:
+                    print(f"Dumping train data => {data_path}")
+                    torch.save(dataset, outfile)
+                with open(public_data_path, 'wb') as outfile:
+                    print(f"Dumping public data => {public_data_path}")
+                    torch.save(public_dataset, outfile)
+            
+            else:
+                with open(data_path, 'wb') as outfile:
+                    print(f"Dumping test data => {data_path}")
+                    torch.save(dataset, outfile)
+
         if mode == 'train':
             for u in range(NUM_USERS):
                 print("{} samples in total".format(samples_per_user[u]))

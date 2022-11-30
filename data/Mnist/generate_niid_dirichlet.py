@@ -106,7 +106,7 @@ def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=
             # re-balance proportions
             proportions=np.array([p * (n_per_user < max_samples_per_user) for p, n_per_user in zip(proportions, samples_per_user)])
             proportions=proportions / proportions.sum()
-            proportions=(np.cumsum(proportions) * len(idx_l)).astype(int)[:-1]
+            proportions=(np.cumsum(proportions) * len(idx_l_train)).astype(int)[:-1]
 
             # participate data of that label
             # for u, new_idx in enumerate(np.split(idx_l, proportions)):
