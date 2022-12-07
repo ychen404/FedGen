@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 import os
 import copy
@@ -16,13 +17,16 @@ import pdb
 MIN_SAMPLES_PER_LABEL=1
 
 class FedDFGen(Server):
+
     def __init__(self, args, model, seed):
         super().__init__(args, model, seed)
         # Initialize data for all users
         data = read_data(args.dataset)
+        # data = read_data(args)
         # data contains: clients, groups, train_data, test_data, proxy_data
         clients = data[0]
         total_users = len(clients)
+        
         self.total_test_samples = 0
         self.local = 'local' in self.algorithm.lower()
         self.use_adam = 'adam' in self.algorithm.lower()
@@ -38,21 +42,27 @@ class FedDFGen(Server):
         if not args.train:
             print('number of generator parameteres: [{}]'.format(self.generative_model.get_number_of_parameters()))
             print('number of model parameteres: [{}]'.format(self.model.get_number_of_parameters()))
+
         self.latent_layer_idx = self.generative_model.latent_layer_idx
         self.init_ensemble_configs()
+
         print("latent_layer_idx: {}".format(self.latent_layer_idx))
         print("label embedding {}".format(self.generative_model.embedding))
         print("ensemeble learning rate: {}".format(self.ensemble_lr))
         print("ensemeble alpha = {}, beta = {}, eta = {}".format(self.ensemble_alpha, self.ensemble_beta, self.ensemble_eta))
         print("generator alpha = {}, beta = {}".format(self.generative_alpha, self.generative_beta))
+
         self.init_loss_fn()
         self.train_data_loader, self.train_iter, self.available_labels = aggregate_user_data(data, args.dataset, self.ensemble_batch_size)
+
         self.generative_optimizer = torch.optim.Adam(
             params=self.generative_model.parameters(),
             lr=self.ensemble_lr, betas=(0.9, 0.999),
             eps=1e-08, weight_decay=self.weight_decay, amsgrad=False)
+
         self.generative_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
             optimizer=self.generative_optimizer, gamma=0.98)
+
         self.optimizer = torch.optim.Adam(
             params=self.model.parameters(),
             lr=self.ensemble_lr, betas=(0.9, 0.999),
@@ -61,15 +71,19 @@ class FedDFGen(Server):
 
         #### creating users ####
         self.users = []
+
+        writer = SummaryWriter()
         for i in range(total_users):
-            id, train_data, test_data, label_info =read_user_data(i, data, dataset=args.dataset, count_labels=True)
-            self.total_train_samples+=len(train_data)
+            
+            id, train_data, test_data, label_info = read_user_data(i, data, dataset=args.dataset, count_labels=True)
+            self.total_train_samples += len(train_data)
             self.total_test_samples += len(test_data)
-            id, train, test=read_user_data(i, data, dataset=args.dataset)
+
+            # id, train, test = read_user_data(i, data, dataset=args.dataset)
             user=UserpFedGen(
                 args, id, model, self.generative_model,
                 train_data, test_data,
-                self.available_labels, self.latent_layer_idx, label_info,
+                self.available_labels, self.latent_layer_idx, label_info, writer,
                 use_adam=self.use_adam)
             self.users.append(user)
         print("Number of Train/Test samples:", self.total_train_samples, self.total_test_samples)
@@ -80,12 +94,14 @@ class FedDFGen(Server):
         #### pretraining
         for glob_iter in range(self.num_glob_iters):
             print("\n\n-------------Round number: ",glob_iter, " -------------\n\n")
-            self.selected_users, self.user_idxs=self.select_users(glob_iter, self.num_users, return_idx=True)
+            self.selected_users, self.user_idxs = self.select_users(glob_iter, self.num_users, return_idx=True)
             if not self.local:
-                self.send_parameters(mode=self.mode)# broadcast averaged prediction model
+                self.send_parameters(mode=self.mode) # broadcast averaged prediction model
             self.evaluate()
             chosen_verbose_user = np.random.randint(0, len(self.users))
             self.timestamp = time.time() # log user-training start time
+
+            # pdb.set_trace()
             for user_id, user in zip(self.user_idxs, self.selected_users): # allow selected users to train
                 verbose = user_id == chosen_verbose_user
                 # perform regularization using generated samples after the first communication round
@@ -95,6 +111,7 @@ class FedDFGen(Server):
                     early_stop=self.early_stop,
                     verbose=verbose and glob_iter > 0,
                     regularization = glob_iter > 0 )
+
             curr_timestamp = time.time() # log  user-training end time
             train_time = (curr_timestamp - self.timestamp) / len(self.selected_users)
             self.metrics['user_train_time'].append(train_time)
@@ -108,11 +125,14 @@ class FedDFGen(Server):
                 latent_layer_idx=self.latent_layer_idx,
                 verbose=True
             )
-            self.aggregate_parameters()
+
+            #### test without averaged model to initialized distillation 
+            # self.aggregate_parameters()
+            ####
 
             #########################################
             # add distillation
-            self.distill(args, 1, self.student_model)
+            self.distill(args, 10, self.student_model)
             #########################################
 
             curr_timestamp=time.time()  # log  server-agg end time
@@ -141,9 +161,12 @@ class FedDFGen(Server):
             self.generative_model.train()
             student_model.eval()
             for i in range(n_iters):
+
                 self.generative_optimizer.zero_grad()
-                y=np.random.choice(self.qualified_labels, batch_size)
-                y_input=torch.LongTensor(y)
+                # pdb.set_trace()
+                y = np.random.choice(self.qualified_labels, batch_size)
+                
+                y_input = torch.LongTensor(y)
                 ## feed to generator
                 # pdb.set_trace()
                 gen_result=self.generative_model(y_input, latent_layer_idx=latent_layer_idx, verbose=True)
@@ -202,17 +225,22 @@ class FedDFGen(Server):
 
 
     def get_label_weights(self):
+        
         label_weights = []
         qualified_labels = []
+        
         for label in range(self.unique_labels):
             weights = []
             for user in self.selected_users:
                 weights.append(user.label_counts[label])
+        
             if np.max(weights) > MIN_SAMPLES_PER_LABEL:
                 qualified_labels.append(label)
+        
             # uniform
             label_weights.append( np.array(weights) / np.sum(weights) )
         label_weights = np.array(label_weights).reshape((self.unique_labels, -1))
+        
         return label_weights, qualified_labels
 
     def visualize_images(self, generator, glob_iter, repeats=1):

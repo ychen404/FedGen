@@ -165,7 +165,6 @@
 #                 --times 1
 
 
-
 # python3 main.py --dataset EMnist-alpha0.5-ratio0.1 \
 #                 --algorithm FedGen \
 #                 --batch_size 32 \
@@ -178,14 +177,84 @@
 #                 --personal_learning_rate 0.01 \
 #                 --times 1
 
-python3 main.py --dataset EMnist-alpha0.5-ratio0.1 \
+# python3 main.py --dataset EMnist-alpha0.5-ratio0.1 \
+#                 --algorithm GenPlusDF \
+#                 --batch_size 32 \
+#                 --num_glob_iters 200 \
+#                 --local_epochs 20 \
+#                 --num_users 10 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --times 3
+
+# python3 main.py --dataset EMnist-alpha0.5-ratio0.1 \
+#                 --algorithm GenPlusDF \
+#                 --batch_size 32 \
+#                 --num_glob_iters 200 \
+#                 --local_epochs 20 \
+#                 --num_users 10 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --times 1
+
+
+python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
                 --algorithm GenPlusDF \
                 --batch_size 32 \
-                --num_glob_iters 200 \
+                --num_glob_iters 10 \
                 --local_epochs 20 \
-                --num_users 10 \
+                --num_users 2 \
                 --lamda 1 \
                 --learning_rate 0.01 \
                 --model cnn \
                 --personal_learning_rate 0.01 \
                 --times 1
+
+# debug with pdb
+# python3 -m pdb main.py --dataset EMnist-alpha0.5-ratio0.1 \
+#                 --algorithm GenPlusDF \
+#                 --batch_size 32 \
+#                 --num_glob_iters 10 \
+#                 --local_epochs 20 \
+#                 --num_users 2 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --times 1
+
+
+# to run batch mode 
+# ./run_single 1
+# running=$1
+# if [ "$#" -eq 0 ]
+# then
+#     echo "you did not pass any input argument Usage: ./run_single.sh <if_run>
+#     echo "Example: ./run_single.sh 1
+#     exit
+# else
+# for alpha in 0.05 0.1 100.0 10.0
+#       do  
+#         ratio=0.1
+#         dataset="EMnist-alpha$alpha-ratio$ratio"
+#         cmd="python3 main.py --dataset $dataset \
+#                 --algorithm GenPlusDF \
+#                 --batch_size 32 \
+#                 --num_glob_iters 200 \
+#                 --local_epochs 20 \
+#                 --num_users 10 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --times 3"
+#         echo $cmd
+#       if [ "$running" = "1" ]; then
+#         eval $cmd
+#       fi
+#     done
+# fi

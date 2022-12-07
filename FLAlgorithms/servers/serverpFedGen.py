@@ -18,7 +18,9 @@ class FedGen(Server):
         super().__init__(args, model, seed)
 
         # Initialize data for all users
-        data = read_data(args.dataset)
+
+        data = read_data(args)
+
         # data contains: clients, groups, train_data, test_data, proxy_data
         clients = data[0]
         total_users = len(clients)
@@ -58,16 +60,20 @@ class FedGen(Server):
         #### creating users ####
         self.users = []
         for i in range(total_users):
-            id, train_data, test_data, label_info =read_user_data(i, data, dataset=args.dataset, count_labels=True)
-            self.total_train_samples+=len(train_data)
+            
+            
+            id, train_data, test_data, label_info = read_user_data(i, data, dataset=args.dataset, count_labels=True)
+            self.total_train_samples += len(train_data)
             self.total_test_samples += len(test_data)
             id, train, test=read_user_data(i, data, dataset=args.dataset)
+
             user=UserpFedGen(
                 args, id, model, self.generative_model,
                 train_data, test_data,
                 self.available_labels, self.latent_layer_idx, label_info,
                 use_adam=self.use_adam)
             self.users.append(user)
+        
         print("Number of Train/Test samples:", self.total_train_samples, self.total_test_samples)
         print("Data from {} users in total.".format(total_users))
         print("Finished creating FedAvg server.")

@@ -10,9 +10,9 @@ dir = 'results/EMnist-alpha100.0-ratio0.1'
 # dir = 'results/ours'
 
 # dir = sys.argv[1]
-files = ["results/EMnist-alpha0.5-ratio0.1_FedDFGen_0.01_10u_32b_20_0.h5", 
-        "results/EMnist-alpha0.5-ratio0.1_FedDFGen_0.01_10u_32b_20_1.h5",
-        "results/EMnist-alpha0.5-ratio0.1_FedDFGen_0.01_10u_32b_20_2.h5" ]
+files = ["results/EMnist-alpha100.0-ratio0.1_GenPlusDF_0.01_10u_32b_20_0.h5", 
+        "results/EMnist-alpha100.0-ratio0.1_GenPlusDF_0.01_10u_32b_20_1.h5",
+        "results/EMnist-alpha100.0-ratio0.1_GenPlusDF_0.01_10u_32b_20_2.h5" ]
 
 # for file in glob.glob(os.path.join(dir, '*.h5')):
 #     files.append(file)

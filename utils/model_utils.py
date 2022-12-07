@@ -23,10 +23,16 @@ def get_data_dir(dataset):
     if 'EMnist' in dataset:
         #EMnist-alpha0.1-ratio0.1-0-letters
         
-        dataset_=dataset.replace('alpha', '').replace('ratio', '').split('-')
+        dataset_ = dataset.replace('alpha', '').replace('ratio', '').split('-')
         alpha, ratio =dataset_[1], dataset_[2]
         types = 'letters'
-        path_prefix = os.path.join('data', 'EMnist', f'u20-{types}-alpha{alpha}-ratio{ratio}')
+        
+        # path_prefix = os.path.join('data', 'EMnist', f'u20-{types}-alpha{alpha}-ratio{ratio}')
+        path_prefix = os.path.join('data', 'EMnist', f'u2-{types}-alpha{alpha}-ratio{ratio}')
+        # change to 2 users
+        # instead of hardcode the number of users, now I pass the num_users as an argument 
+        # path_prefix = os.path.join('data', 'EMnist', f'u{num_users}-{types}-alpha{alpha}-ratio{ratio}')
+        
         train_data_dir=os.path.join(path_prefix, 'train')
         test_data_dir=os.path.join(path_prefix, 'test')
         public_data_dir = os.path.join(path_prefix, 'public') # add the public data path
@@ -56,10 +62,15 @@ def get_data_dir(dataset):
 
     else:
         raise ValueError("Dataset not recognized.")
+        
     return train_data_dir, test_data_dir, proxy_data_dir, public_data_dir
 
 
+
+#TODO 
+# read_data(args.dataset) needs to be changed to read_data(args) in other places
 def read_data(dataset):
+# def read_data(args):
     '''parses data in given train and test data directories
 
     assumes:
@@ -74,8 +85,9 @@ def read_data(dataset):
         test_data: dictionary of test data
     '''
 
+    # train_data_dir, test_data_dir, proxy_data_dir, public_data_dir = get_data_dir(args.dataset, args.num_users)
     train_data_dir, test_data_dir, proxy_data_dir, public_data_dir = get_data_dir(dataset)
-    
+
     clients = []
     groups = []
     train_data = {}

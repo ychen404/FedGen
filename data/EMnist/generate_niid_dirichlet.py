@@ -79,9 +79,7 @@ def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=
             
             # get indices for all that label
             idx_l = [i for i in range(len(data[l]))]
-
             np.random.shuffle(idx_l)
-            print("1")
             
             if sampling_ratio < 1:
                 samples_for_l = min(max_samples_per_user, int(sampling_ratio * len(data[l])))
@@ -98,6 +96,7 @@ def divide_train_data(data, n_sample, SRC_CLASSES, NUM_USERS, min_sample, alpha=
                 # print(l, len(data[l]), len(idx_l))
                 print(l, len(data[l]), len(idx_l_train), len(idx_l_public))
 
+            
             # dirichlet sampling from this label
             proportions=np.random.dirichlet(np.repeat(alpha, NUM_USERS))
             # re-balance proportions

@@ -143,7 +143,9 @@ data/Mnist/*
 test_emnist/data
 # results
 results/*
+runs/*
 
 # models
 models/*
+
 

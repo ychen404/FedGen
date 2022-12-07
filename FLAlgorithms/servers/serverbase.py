@@ -132,9 +132,15 @@ class Server:
         Return:
             list of selected clients objects
         '''
+
         if(num_users == len(self.users)):
             print("All users are selected")
-            return self.users
+            
+            if return_idx:
+                user_idxs = np.random.choice(range(len(self.users)), num_users, replace=False)
+                [self.users[i] for i in user_idxs], user_idxs
+            else:
+                return self.users
 
         num_users = min(num_users, len(self.users))
         if return_idx:
