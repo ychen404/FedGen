@@ -39,7 +39,7 @@ class UserpFedGen(User):
         self.clean_up_counts()
         self.model.train()
         self.generative_model.eval()
-        TEACHER_LOSS, DIST_LOSS, LATENT_LOSS = 0, 0, 0
+        GENERATOR_LOSS, DIST_LOSS, LATENT_LOSS = 0, 0, 0
 
         for epoch in range(self.local_epochs):
             self.model.train()
@@ -76,22 +76,23 @@ class UserpFedGen(User):
                     user_output_logp = self.model(gen_output, start_layer_idx=self.latent_layer_idx)['output']
                     
                     # pdb.set_trace()
-                    teacher_loss =  generative_alpha * torch.mean(
+                    generator_loss =  generative_alpha * torch.mean(
                         self.generative_model.crossentropy_loss(user_output_logp, sampled_y)
                     )
 
                     # this is to further balance oversampled down-sampled synthetic data
                     gen_ratio = self.gen_batch_size / self.batch_size
-                    loss = predictive_loss + gen_ratio * teacher_loss + user_latent_loss
-                    TEACHER_LOSS += teacher_loss
+                    loss = predictive_loss + gen_ratio * generator_loss + user_latent_loss
+                    GENERATOR_LOSS += generator_loss
                     LATENT_LOSS += user_latent_loss
                 else:
                     #### get loss and perform optimization
                     loss = predictive_loss
                 
-                self.writer.add_scalar("Training loss" + str(self.id), 
-                                        loss, 
-                                        glob_iter * self.local_epochs + epoch)
+                self.writer.add_scalar(f"user {str(self.id)}/Predictive loss", predictive_loss, glob_iter * self.local_epochs + epoch)
+                self.writer.add_scalar(f"user {str(self.id)}/Generator loss", GENERATOR_LOSS / (self.local_epochs * self.K), glob_iter * self.local_epochs + epoch)
+                self.writer.add_scalar(f"user {str(self.id)}/user latent loss", LATENT_LOSS / (self.local_epochs * self.K), glob_iter * self.local_epochs + epoch)
+                self.writer.add_scalar(f"user {str(self.id)}/Total loss", loss, glob_iter * self.local_epochs + epoch)
 
                 loss.backward()
                 self.optimizer.step()#self.local_model)
@@ -104,9 +105,9 @@ class UserpFedGen(User):
         self.lr_scheduler.step(glob_iter)
         
         if regularization and verbose:
-            TEACHER_LOSS=TEACHER_LOSS.detach().numpy() / (self.local_epochs * self.K)
+            GENERATOR_LOSS=GENERATOR_LOSS.detach().numpy() / (self.local_epochs * self.K)
             LATENT_LOSS=LATENT_LOSS.detach().numpy() / (self.local_epochs * self.K)
-            info='\nUser Teacher Loss={:.4f}'.format(TEACHER_LOSS)
+            info='\nUser Teacher Loss={:.4f}'.format(GENERATOR_LOSS)
             info+=', Latent Loss={:.4f}'.format(LATENT_LOSS)
             print(info)
 

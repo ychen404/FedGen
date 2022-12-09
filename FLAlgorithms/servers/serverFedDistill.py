@@ -9,7 +9,7 @@ class FedDistill(Server):
         super().__init__(args, model, seed)
 
         # Initialize data for all users
-        data = read_data(args.dataset)
+        data = read_data(args)
         # data contains: clients, groups, train_data, test_data, proxy_data
         clients = data[0]
         total_users = len(clients)

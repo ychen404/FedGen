@@ -12,7 +12,7 @@ class FedAvg(Server):
         super().__init__(args, model, seed)
 
         # Initialize data for all  users
-        data = read_data(args.dataset)
+        data = read_data(args)
         # data contains: clients, groups, train_data, test_data, proxy_data, public_data
 
         total_users = len(data[0])
@@ -34,7 +34,11 @@ class FedAvg(Server):
             print("\n\n-------------Round number: ",glob_iter, " -------------\n\n")
             self.selected_users = self.select_users(glob_iter,self.num_users)
             self.send_parameters(mode=self.mode) # send parameters from server model to client models
-            self.evaluate() # evaluate all the user models?? the server model is equivalent to all the client models 
+
+            # evaluate all the user models?? the server model is equivalent to all the client models 
+            # commented out for now
+            # self.evaluate() 
+            
             self.timestamp = time.time() # log user-training start time
             for user in self.selected_users: # allow selected users to train
                     user.train(glob_iter, personalized=self.personalized) # user.train_samples, local training 
@@ -49,8 +53,10 @@ class FedAvg(Server):
 
             self.timestamp = time.time() # log server-agg start time
             self.aggregate_parameters()
+            self.evaluate(glob_iter=glob_iter)
             curr_timestamp=time.time()  # log  server-agg end time
             agg_time = curr_timestamp - self.timestamp
             self.metrics['server_agg_time'].append(agg_time)
+
         self.save_results(args)
         self.save_model()

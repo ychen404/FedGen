@@ -11,7 +11,7 @@ class FedProx(Server):
                          #local_epochs, num_users, times)
 
         # Initialize data for all  users
-        data = read_data(args.dataset)
+        data = read_data(args)
         total_users = len(data[0])
         print("Users in total: {}".format(total_users))
 

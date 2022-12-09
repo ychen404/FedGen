@@ -7,7 +7,6 @@ import torch.nn.functional as F
 import numpy as np
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 
 import os
 import copy
@@ -71,8 +70,6 @@ class FedDFGen(Server):
 
         #### creating users ####
         self.users = []
-
-        writer = SummaryWriter()
         for i in range(total_users):
             
             id, train_data, test_data, label_info = read_user_data(i, data, dataset=args.dataset, count_labels=True)
@@ -83,7 +80,7 @@ class FedDFGen(Server):
             user=UserpFedGen(
                 args, id, model, self.generative_model,
                 train_data, test_data,
-                self.available_labels, self.latent_layer_idx, label_info, writer,
+                self.available_labels, self.latent_layer_idx, label_info, self.writer,
                 use_adam=self.use_adam)
             self.users.append(user)
         print("Number of Train/Test samples:", self.total_train_samples, self.total_test_samples)
@@ -97,7 +94,9 @@ class FedDFGen(Server):
             self.selected_users, self.user_idxs = self.select_users(glob_iter, self.num_users, return_idx=True)
             if not self.local:
                 self.send_parameters(mode=self.mode) # broadcast averaged prediction model
-            self.evaluate()
+            
+            
+            self.evaluate(glob_iter=glob_iter)
             chosen_verbose_user = np.random.randint(0, len(self.users))
             self.timestamp = time.time() # log user-training start time
 

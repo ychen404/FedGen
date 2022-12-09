@@ -3,8 +3,10 @@ from FLAlgorithms.users.userbase import User
 import pdb
 
 class UserDF(User):
-    def __init__(self,  args, id, model, train_data, test_data, use_adam=False):
+    def __init__(self,  args, id, model, train_data, test_data, writer, use_adam=False):
         super().__init__(args, id, model, train_data, test_data, use_adam=use_adam)
+        self.writer = writer
+        self.id = id.split('_')[1][-1] # keep track of each user for tensorboard
 
     def update_label_counts(self, labels, counts):
         for label, count in zip(labels, counts):
@@ -32,6 +34,9 @@ class UserDF(User):
                 self.optimizer.zero_grad()
                 output=self.model(X)['output']
                 loss=self.loss(output, y)
+
+                self.writer.add_scalar(f"user {str(self.id)}/Total loss", loss, glob_iter * self.local_epochs + epoch)
+
                 loss.backward()
                 self.optimizer.step()#self.plot_Celeb)
 

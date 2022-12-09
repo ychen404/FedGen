@@ -20,7 +20,7 @@ class FedDF(Server):
         super().__init__(args, model, seed)
 
         # Initialize data for all users
-        data = read_data(args.dataset)
+        data = read_data(args)
         # data contains: clients, groups, train_data, test_data, proxy_data
         clients = data[0]
         total_users = len(clients)
@@ -60,7 +60,7 @@ class FedDF(Server):
         self.users = []
         for i in range(total_users):
             id, train_data , test_data = read_user_data(i, data, dataset=args.dataset)
-            user = UserDF(args, id, model, train_data, test_data, use_adam=False)
+            user = UserDF(args, id, model, train_data, test_data, self.writer, use_adam=False)
             self.users.append(user)
             self.total_train_samples += user.train_samples
         
@@ -75,7 +75,7 @@ class FedDF(Server):
             if not self.local:
                 self.send_parameters(mode=self.mode)# broadcast averaged prediction model
             
-            self.evaluate()
+            # self.evaluate()
             self.timestamp = time.time() # log user-training start time
             
             for user_id, user in zip(self.user_idxs, self.selected_users): # allow selected users to train
@@ -95,9 +95,10 @@ class FedDF(Server):
             ### need to change the aggregator ###
             self.aggregate_parameters()
             # model operations
-            self.distill(args, 10, self.student_model)
+            # self.distill(args, 10, self.student_model)
             #########################################
-            
+            self.evaluate(glob_iter=glob_iter)
+
             curr_timestamp=time.time()  # log  server-agg end time
             agg_time = curr_timestamp - self.timestamp
             self.metrics['server_agg_time'].append(agg_time)

@@ -9,6 +9,7 @@ import time
 import torch.nn as nn
 from utils.model_utils import get_log_path, METRICS
 import pdb
+from torch.utils.tensorboard import SummaryWriter
 
 
 class Server:
@@ -38,6 +39,16 @@ class Server:
         self.timestamp = None
         self.save_path = args.result_path
         os.system("mkdir -p {}".format(self.save_path))
+
+        comment = f"{args.workspace}" + \
+                    f"_alg_{args.algorithm}" + \
+                    f"_bs_{args.batch_size}" + \
+                    f"_r_{args.num_glob_iters}" + \
+                    f"_e_{args.local_epochs}" + \
+                    f"_ds_{args.dataset}" + \
+                    f"_model_{args.model}"
+
+        self.writer = SummaryWriter(comment=comment)
 
 
     def init_ensemble_configs(self):
@@ -235,8 +246,7 @@ class Server:
         self.metrics['glob_loss'].append(loss)
         print("Average Global Accurancy = {:.4f}, Loss = {:.2f}.".format(test_acc, loss))
 
-
-    def evaluate(self, save=True, selected=False):
+    def evaluate(self, glob_iter=None, save=True, selected=False):
         # override evaluate function to log vae-loss.
         test_ids, test_samples, test_accs, test_losses = self.test(selected=selected)
         glob_acc = np.sum(test_accs)*1.0/np.sum(test_samples)
@@ -246,4 +256,7 @@ class Server:
         if save:
             self.metrics['glob_acc'].append(glob_acc)
             self.metrics['glob_loss'].append(glob_loss)
+
         print("Average Global Accurancy = {:.4f}, Loss = {:.2f}.".format(glob_acc, glob_loss))
+        self.writer.add_scalar("Global/Average Accuracy", glob_acc * 100, glob_iter)
+        self.writer.add_scalar("Global/Loss", glob_loss, glob_iter)
