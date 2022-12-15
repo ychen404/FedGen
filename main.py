@@ -17,8 +17,10 @@ import pdb
 
 
 def create_server_n_user(args, i):
+
+
     model = create_model(args.model, args.dataset, args.algorithm)
-    
+
     if ('FedAvg' in args.algorithm):
         server=FedAvg(args, model, i)
     elif 'FedGen' in args.algorithm:
@@ -95,6 +97,6 @@ if __name__ == "__main__":
     print("Number of local rounds       : {}".format(args.local_epochs))
     print("Dataset       : {}".format(args.dataset))
     print("Local Model       : {}".format(args.model))
-    print("Device            : {}".format(args.device))
+    # print("Device            : {}".format(args.device))
     print("=" * 80)
     main(args)

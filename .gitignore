@@ -134,6 +134,7 @@ dmypy.json
 data/CelebA/*
 data/EMnist/*
 data/Mnist/*
+data/EMNIST/*
 
 !data/CelebA/generate_niid_agg.py
 !data/CelebA/README.md

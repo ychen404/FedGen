@@ -47,6 +47,8 @@ class User:
         self.personalized_model_bar = copy.deepcopy(list(self.model.parameters()))
         self.prior_decoder = None
         self.prior_params = None
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
         self.init_loss_fn()
         if use_adam:

@@ -278,7 +278,13 @@ def create_generative_model(dataset, algorithm='', model='cnn', embedding=False)
 def create_model(model, dataset, algorithm):
     passed_dataset = get_dataset_name(dataset)
     # why is this additional 'model' required?
-    model = Net(passed_dataset, model), model
+    
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    net = Net(passed_dataset, model)
+    net = net.to(device)
+    # model = Net(passed_dataset, model), model
+    model = net, model
     return model
 
 

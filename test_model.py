@@ -234,24 +234,24 @@ def train(epoch):
     correct = 0
     total = 0
 
-    # for batch_idx, (inputs, targets) in enumerate(trainloaders[0]):
+    for batch_idx, (inputs, targets) in enumerate(trainloaders[0]):
     
-    #     inputs, targets = inputs.to(device), targets.to(device)
-    #     optimizer.zero_grad()
-    #     outputs = net(inputs)['output']
-    #     # pdb.set_trace()
+        inputs, targets = inputs.to(device), targets.to(device)
+        optimizer.zero_grad()
+        outputs = net(inputs)['output']
+        # pdb.set_trace()
 
-    #     loss = criterion(outputs, targets)
-    #     loss.backward()
-    #     optimizer.step()
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
 
-    #     train_loss += loss.item()
-    #     _, predicted = outputs.max(1)
-    #     total += targets.size(0)
-    #     correct += predicted.eq(targets).sum().item()
+        train_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += targets.size(0)
+        correct += predicted.eq(targets).sum().item()
         
-    #     if batch_idx % 20 == 0:
-    #         print(f"batch index: {batch_idx}, Loss: {train_loss/(batch_idx+1)}, Acc: {100.*correct/total}")
+        if batch_idx % 20 == 0:
+            print(f"batch index: {batch_idx}, Loss: {train_loss/(batch_idx+1)}, Acc: {100.*correct/total}")
     
     result = get_next_train_batch(trainloaders[0])
     X, y = result['X'], result['y']

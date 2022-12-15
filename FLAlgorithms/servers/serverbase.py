@@ -38,6 +38,8 @@ class Server:
         self.metrics = {key:[] for key in METRICS}
         self.timestamp = None
         self.save_path = args.result_path
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
         os.system("mkdir -p {}".format(self.save_path))
 
         comment = f"{args.workspace}" + \
