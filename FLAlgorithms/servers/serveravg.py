@@ -16,6 +16,7 @@ class FedAvg(Server):
         # data contains: clients, groups, train_data, test_data, proxy_data, public_data
 
         total_users = len(data[0])
+        # pdb.set_trace()
         
         self.use_adam = 'adam' in self.algorithm.lower()
         print("Users in total: {}".format(total_users))

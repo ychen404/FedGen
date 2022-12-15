@@ -42,11 +42,13 @@ class Server:
 
         comment = f"{args.workspace}" + \
                     f"_alg_{args.algorithm}" + \
+                    f"_num_users_{args.num_users}" + \
                     f"_bs_{args.batch_size}" + \
                     f"_r_{args.num_glob_iters}" + \
                     f"_e_{args.local_epochs}" + \
                     f"_ds_{args.dataset}" + \
-                    f"_model_{args.model}"
+                    f"_model_{args.model}" + \
+                    f"_distill_init_{args.distill_init}"
 
         self.writer = SummaryWriter(comment=comment)
 

@@ -130,6 +130,7 @@ class User:
         return grads
 
     def test(self):
+        # this function is inconvenient, requiring another function to keep track of the total samples
         self.model.eval()
         test_acc = 0
         loss = 0
@@ -138,6 +139,20 @@ class User:
             loss += self.loss(output, y)
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
         return test_acc, loss, y.shape[0]
+
+    def eval_test_acc(self):
+        self.model.eval()
+        
+        loss = 0
+        total_samples = 0
+        total_correct = 0
+        for x, y in self.testloaderfull:
+            output = self.model(x)['output']
+            loss += self.loss(output, y)
+            total_correct += (torch.sum(torch.argmax(output, dim=1) == y)).item()
+            total_samples += y.shape[0]
+        
+        return total_correct/total_samples, loss/total_samples
 
     def test_personalized_model(self):
         self.model.eval()

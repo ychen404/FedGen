@@ -66,9 +66,6 @@ def get_data_dir(dataset, num_users):
     return train_data_dir, test_data_dir, proxy_data_dir, public_data_dir
 
 
-
-#TODO 
-# read_data(args.dataset) needs to be changed to read_data(args) in other places
 # def read_data(dataset):
 def read_data(args):
     '''parses data in given train and test data directories

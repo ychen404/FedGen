@@ -216,23 +216,10 @@
 #                 --device cuda \
 #                 --workspace _wo_init_avg
 
-# python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
-#                 --algorithm FedAvg \
-#                 --batch_size 32 \
-#                 --num_glob_iters 10 \
-#                 --local_epochs 20 \
-#                 --num_users 2 \
-#                 --lamda 1 \
-#                 --learning_rate 0.01 \
-#                 --model cnn \
-#                 --personal_learning_rate 0.01 \
-#                 --times 1 \
-#                 --workspace _baseline
-
 python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
-                --algorithm FedDF \
+                --algorithm FedAvg \
                 --batch_size 32 \
-                --num_glob_iters 200 \
+                --num_glob_iters 10 \
                 --local_epochs 20 \
                 --num_users 2 \
                 --lamda 1 \
@@ -240,7 +227,21 @@ python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
                 --model cnn \
                 --personal_learning_rate 0.01 \
                 --times 1 \
-                --workspace _baseline_from_prev
+                --workspace _baseline
+
+# python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
+#                 --algorithm FedDF \
+#                 --batch_size 32 \
+#                 --num_glob_iters 1 \
+#                 --local_epochs 500 \
+#                 --num_users 2 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --distill_init prev \
+#                 --times 1 \
+#                 --workspace _baseline_one_round
 
 # debug with pdb
 # python3 -m pdb main.py --dataset EMnist-alpha0.5-ratio0.1 \

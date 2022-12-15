@@ -15,7 +15,7 @@ class Net(nn.Module):
         self.dataset = dataset
         configs, input_channel, self.output_dim, self.hidden_dim, self.latent_dim=CONFIGS_[dataset]
         print('Network configs:', configs)
-        self.named_layers, self.layers, self.layer_names =self.build_network(
+        self.named_layers, self.layers, self.layer_names = self.build_network(
             configs, input_channel, self.output_dim)
         self.n_parameters = len(list(self.parameters()))
         self.n_share_parameters = len(self.get_encoder())

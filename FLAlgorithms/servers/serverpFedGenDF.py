@@ -126,9 +126,12 @@ class FedDFGen(Server):
             )
 
             #### test without averaged model to initialized distillation 
-            # self.aggregate_parameters()
-            ####
-
+            if args.distill_init == 'averaged':
+                print("Init distill from averaged")
+                self.aggregate_parameters()
+            else:
+                print("Init distill from prev")
+                
             #########################################
             # add distillation
             self.distill(args, 10, self.student_model)

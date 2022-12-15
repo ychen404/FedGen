@@ -92,10 +92,15 @@ class FedDF(Server):
 
             self.timestamp = time.time() # log server-agg start time
 
-            ### need to change the aggregator ###
-            self.aggregate_parameters()
+
+            if args.distill_init == 'averaged':
+                print("Init distill from averaged")
+                self.aggregate_parameters()
+            else:
+                print("Init distill from prev")
+
             # model operations
-            # self.distill(args, 10, self.student_model)
+            self.distill(args, 10, self.student_model)
             #########################################
             self.evaluate(glob_iter=glob_iter)
 

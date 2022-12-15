@@ -20,7 +20,6 @@ class UserAVG(User):
         for epoch in range(1, self.local_epochs + 1):
             self.model.train()
             for i in range(self.K):
-                
                 # pdb.set_trace()
                 result = self.get_next_train_batch(count_labels=count_labels)
                 X, y = result['X'], result['y']
@@ -35,7 +34,6 @@ class UserAVG(User):
                 loss=self.loss(output, y)
                 loss.backward()
                 self.optimizer.step()#self.plot_Celeb)
-
             # local-model <=== self.model
             # this function is not even using its return value
             self.clone_model_paramenter(self.model.parameters(), self.local_model)

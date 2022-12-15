@@ -32,10 +32,18 @@ class UserDF(User):
                     self.update_label_counts(result['labels'], result['counts'])
 
                 self.optimizer.zero_grad()
-                output=self.model(X)['output']
-                loss=self.loss(output, y)
+                output = self.model(X)['output']
+                loss = self.loss(output, y)
 
+                # test_acc, test_loss, _ = self.test()
+
+                test_acc, test_loss = self.eval_test_acc()
+
+                if epoch % 20 == 0:
+                    print(f"Epoch: {epoch}, test acc: {test_acc}, test loss: {test_loss}")
                 self.writer.add_scalar(f"user {str(self.id)}/Total loss", loss, glob_iter * self.local_epochs + epoch)
+                self.writer.add_scalar(f"user {str(self.id)}/Test acc", test_acc, glob_iter * self.local_epochs + epoch)
+                self.writer.add_scalar(f"user {str(self.id)}/Test loss", test_loss, glob_iter * self.local_epochs + epoch)
 
                 loss.backward()
                 self.optimizer.step()#self.plot_Celeb)
