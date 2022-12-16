@@ -52,6 +52,7 @@ class UserpFedGen(User):
 
                 samples = self.get_next_train_batch(count_labels=True)
                 X, y = samples['X'], samples['y']
+                X, y = X.to(self.device), y.to(self.device)
                 self.update_label_counts(samples['labels'], samples['counts'])
 
                 model_result = self.model(X, logit=True)
@@ -70,7 +71,9 @@ class UserpFedGen(User):
                     user_latent_loss = generative_beta * self.ensemble_loss(user_output_logp, target_p)
 
                     sampled_y = np.random.choice(self.available_labels, self.gen_batch_size)
-                    sampled_y = torch.tensor(sampled_y)
+                    sampled_y = torch.tensor(sampled_y, device=self.device)
+                    
+
                     gen_result = self.generative_model(sampled_y, latent_layer_idx=self.latent_layer_idx)
                     gen_output = gen_result['output'] # latent representation when latent = True, x otherwise
                     user_output_logp = self.model(gen_output, start_layer_idx=self.latent_layer_idx)['output']
@@ -105,8 +108,8 @@ class UserpFedGen(User):
         self.lr_scheduler.step(glob_iter)
         
         if regularization and verbose:
-            GENERATOR_LOSS=GENERATOR_LOSS.detach().numpy() / (self.local_epochs * self.K)
-            LATENT_LOSS=LATENT_LOSS.detach().numpy() / (self.local_epochs * self.K)
+            GENERATOR_LOSS=GENERATOR_LOSS.detach().cpu().numpy() / (self.local_epochs * self.K)
+            LATENT_LOSS=LATENT_LOSS.detach().cpu().numpy() / (self.local_epochs * self.K)
             info='\nUser Teacher Loss={:.4f}'.format(GENERATOR_LOSS)
             info+=', Latent Loss={:.4f}'.format(LATENT_LOSS)
             print(info)
@@ -114,7 +117,7 @@ class UserpFedGen(User):
     def adjust_weights(self, samples):
         labels, counts = samples['labels'], samples['counts']
         #weight=self.label_weights[y][:, user_idx].reshape(-1, 1)
-        np_y = samples['y'].detach().numpy()
+        np_y = samples['y'].detach().cpu().numpy()
         n_labels = samples['y'].shape[0]
         weights = np.array([n_labels / count for count in counts]) # smaller count --> larger weight
         weights = len(self.available_labels) * weights / np.sum(weights) # normalized

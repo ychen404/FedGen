@@ -137,6 +137,7 @@ class User:
         test_acc = 0
         loss = 0
         for x, y in self.testloaderfull:
+            x, y = x.to(self.device), y.to(self.device)
             output = self.model(x)['output']
             loss += self.loss(output, y)
             test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()

@@ -12,6 +12,15 @@ import pdb
 from torch.utils.tensorboard import SummaryWriter
 
 
+class DummySummaryWriter:
+    def __init__(*args, **kwargs):
+        pass
+    def __call__(self, *args, **kwargs):
+        return self
+    def __getattr__(self, *args, **kwargs):
+        return self
+
+
 class Server:
 
     def __init__(self, args, model, seed):
@@ -50,10 +59,13 @@ class Server:
                     f"_e_{args.local_epochs}" + \
                     f"_ds_{args.dataset}" + \
                     f"_model_{args.model}" + \
+                    f"_distill_ep_{args.distill_epochs}" + \
                     f"_distill_init_{args.distill_init}"
 
-        self.writer = SummaryWriter(comment=comment)
-
+        if args.debug:
+            self.writer = DummySummaryWriter()
+        else:    
+            self.writer = SummaryWriter(comment=comment)
 
     def init_ensemble_configs(self):
         #### used for ensemble learning ####
@@ -255,7 +267,8 @@ class Server:
         test_ids, test_samples, test_accs, test_losses = self.test(selected=selected)
         glob_acc = np.sum(test_accs)*1.0/np.sum(test_samples)
         # glob_loss = np.sum([x * y for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
-        glob_loss = np.sum([x * y.detach().numpy() for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
+
+        glob_loss = np.sum([x * y.detach().cpu().numpy() for (x, y) in zip(test_samples, test_losses)]).item() / np.sum(test_samples)
 
         if save:
             self.metrics['glob_acc'].append(glob_acc)

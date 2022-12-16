@@ -296,6 +296,14 @@ def freeze_net(net):
     net.eval()
     return net
 
+def defrost_net(net):
+    # freeze the layers of the teacher
+    for param in net.parameters():
+        param.requires_grad = True
+    # set the teacher net into train mode
+    net.train()
+    return net
+
 def polyak_move(params, target_params, ratio=0.1):
     for param, target_param in zip(params, target_params):
         param.data=param.data - ratio * (param.clone().detach().data - target_param.clone().detach().data)

@@ -21,6 +21,8 @@ class Generator(nn.Module):
         self.fc_configs = [input_dim, self.hidden_dim]
         self.init_loss_fn()
         self.build_network()
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
     def get_number_of_parameters(self):
         pytorch_total_params=sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -61,15 +63,18 @@ class Generator(nn.Module):
         result = {}
         batch_size = labels.shape[0]
         eps = torch.rand((batch_size, self.noise_dim)) # sampling from Gaussian
+        eps = eps.to(self.device)
         if verbose:
             result['eps'] = eps
         if self.embedding: # embedded dense vector
             y_input = self.embedding_layer(labels)
         else: # one-hot (sparse) vector
             y_input = torch.FloatTensor(batch_size, self.n_class)
+            y_input = y_input.to(self.device)
             y_input.zero_()
             #labels = labels.view
             y_input.scatter_(1, labels.view(-1,1), 1)
+            
         z = torch.cat((eps, y_input), dim=1)
         ### FC layers
         for layer in self.fc_layers:

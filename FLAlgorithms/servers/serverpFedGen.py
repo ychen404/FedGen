@@ -31,12 +31,15 @@ class FedGen(Server):
         self.early_stop = 20  # stop using generated samples after 20 local epochs
         self.student_model = copy.deepcopy(self.model)
         self.generative_model = create_generative_model(args.dataset, args.algorithm, self.model_name, args.embedding)
+        self.generative_model = self.generative_model.to(self.device)
         # pdb.set_trace()
 
         if not args.train:
             print('number of generator parameteres: [{}]'.format(self.generative_model.get_number_of_parameters()))
             print('number of model parameteres: [{}]'.format(self.model.get_number_of_parameters()))
+        
         self.latent_layer_idx = self.generative_model.latent_layer_idx
+        
         self.init_ensemble_configs()
         print("latent_layer_idx: {}".format(self.latent_layer_idx))
         print("label embedding {}".format(self.generative_model.embedding))
@@ -70,7 +73,7 @@ class FedGen(Server):
             user=UserpFedGen(
                 args, id, model, self.generative_model,
                 train_data, test_data,
-                self.available_labels, self.latent_layer_idx, label_info,
+                self.available_labels, self.latent_layer_idx, label_info, self.writer,
                 use_adam=self.use_adam)
             self.users.append(user)
         
@@ -140,41 +143,51 @@ class FedGen(Server):
                 self.generative_optimizer.zero_grad()
                 y=np.random.choice(self.qualified_labels, batch_size)
                 y_input=torch.LongTensor(y)
-                ## feed to generator
-                # pdb.set_trace()
-                gen_result=self.generative_model(y_input, latent_layer_idx=latent_layer_idx, verbose=True)
-                # get approximation of Z( latent) if latent set to True, X( raw image) otherwise
 
+                ## feed to generator
+                y_input = y_input.to(self.device)
+                self.generative_model = self.generative_model.to(self.device)
+                gen_result = self.generative_model(y_input, latent_layer_idx=latent_layer_idx, verbose=True)
+
+                # get approximation of Z( latent) if latent set to True, X( raw image) otherwise
+                gen_output, eps = gen_result['output'], gen_result['eps'] # gen_output is 32x32
                 
-                gen_output, eps=gen_result['output'], gen_result['eps'] # gen_output is 32x32
-                
+                gen_output, eps = gen_output.to(self.device), eps.to(self.device) 
                 ##### get losses ####
                 # decoded = self.generative_regularizer(gen_output)
                 # regularization_loss = beta * self.generative_model.dist_loss(decoded, eps) # map generated z back to eps
-                diversity_loss=self.generative_model.diversity_loss(eps, gen_output)  # encourage different outputs
+                diversity_loss = self.generative_model.diversity_loss(eps, gen_output)  # encourage different outputs
 
                 ######### get teacher loss ############
-                teacher_loss=0
-                teacher_logit=0
+                teacher_loss = 0
+                teacher_logit = 0
+
                 for user_idx, user in enumerate(self.selected_users):
                     user.model.eval()
-                    weight=self.label_weights[y][:, user_idx].reshape(-1, 1)
-                    expand_weight=np.tile(weight, (1, self.unique_labels))
-                    user_result_given_gen=user.model(gen_output, start_layer_idx=latent_layer_idx, logit=True)
-                    user_output_logp_=F.log_softmax(user_result_given_gen['logit'], dim=1)
-                    teacher_loss_=torch.mean( \
+                    
+                    weight = self.label_weights[y][:, user_idx].reshape(-1, 1)
+
+                    expand_weight = np.tile(weight, (1, self.unique_labels))
+
+                    user_result_given_gen = user.model(gen_output, start_layer_idx=latent_layer_idx, logit=True)
+                    user_output_logp_ = F.log_softmax(user_result_given_gen['logit'], dim=1)
+                    
+                    teacher_loss_ = torch.mean( \
                         self.generative_model.crossentropy_loss(user_output_logp_, y_input) * \
-                        torch.tensor(weight, dtype=torch.float32))
-                    teacher_loss+=teacher_loss_
-                    teacher_logit+=user_result_given_gen['logit'] * torch.tensor(expand_weight, dtype=torch.float32)
+                        torch.tensor(weight, dtype=torch.float32, device=self.device))
+                    
+                    teacher_loss += teacher_loss_
+                    teacher_logit += user_result_given_gen['logit'] * torch.tensor(expand_weight, dtype=torch.float32, device=self.device)
 
                 ######### get student loss ############
-                student_output=student_model(gen_output, start_layer_idx=latent_layer_idx, logit=True)
-                student_loss=F.kl_div(F.log_softmax(student_output['logit'], dim=1), F.softmax(teacher_logit, dim=1))
+                student_output = student_model(gen_output, start_layer_idx=latent_layer_idx, logit=True)
+                student_loss = F.kl_div(F.log_softmax(student_output['logit'], dim=1), F.softmax(teacher_logit, dim=1))
+                
                 if self.ensemble_beta > 0:
                     loss=self.ensemble_alpha * teacher_loss - self.ensemble_beta * student_loss + self.ensemble_eta * diversity_loss
                 else:
                     loss=self.ensemble_alpha * teacher_loss + self.ensemble_eta * diversity_loss
+                
                 loss.backward()
                 self.generative_optimizer.step()
                 TEACHER_LOSS += self.ensemble_alpha * teacher_loss#(torch.mean(TEACHER_LOSS.double())).item()
@@ -183,12 +196,12 @@ class FedGen(Server):
             return TEACHER_LOSS, STUDENT_LOSS, DIVERSITY_LOSS
 
         for i in range(epoches):
-            TEACHER_LOSS, STUDENT_LOSS, DIVERSITY_LOSS=update_generator_(
+            TEACHER_LOSS, STUDENT_LOSS, DIVERSITY_LOSS = update_generator_(
                 self.n_teacher_iters, self.model, TEACHER_LOSS, STUDENT_LOSS, DIVERSITY_LOSS)
 
-        TEACHER_LOSS = TEACHER_LOSS.detach().numpy() / (self.n_teacher_iters * epoches)
-        STUDENT_LOSS = STUDENT_LOSS.detach().numpy() / (self.n_teacher_iters * epoches)
-        DIVERSITY_LOSS = DIVERSITY_LOSS.detach().numpy() / (self.n_teacher_iters * epoches)
+        TEACHER_LOSS = TEACHER_LOSS.detach().cpu().numpy() / (self.n_teacher_iters * epoches)
+        STUDENT_LOSS = STUDENT_LOSS.detach().cpu().numpy() / (self.n_teacher_iters * epoches)
+        DIVERSITY_LOSS = DIVERSITY_LOSS.detach().cpu().numpy() / (self.n_teacher_iters * epoches)
         info="Generator: Teacher Loss= {:.4f}, Student Loss= {:.4f}, Diversity Loss = {:.4f}, ". \
             format(TEACHER_LOSS, STUDENT_LOSS, DIVERSITY_LOSS)
         if verbose:

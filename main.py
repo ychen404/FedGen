@@ -81,6 +81,8 @@ if __name__ == "__main__":
     parser.add_argument("--result_path", type=str, default="results", help="directory path to save results")
     parser.add_argument("--distill_init", type=str, default="averaged", choices=["averaged","prev"], help="distill initialization (averaged | prev)")
     parser.add_argument("--distill_epochs", type=int, default=1)
+    parser.add_argument("--debug", action='store_true', help="debug model without saving results to tensorboar")   
+
     parser.add_argument("--workspace", type=str, default="", help="directory path to save tensorboard results")   
 
 

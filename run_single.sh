@@ -229,20 +229,69 @@
 #                 --times 1 \
 #                 --workspace _baseline
 
-python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
-                --algorithm FedDF \
-                --batch_size 32 \
-                --num_glob_iters 1 \
+
+#======================= train with all batches of data =======================
+
+# python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
+#                 --algorithm FedDF \
+#                 --batch_size 128 \
+#                 --num_glob_iters 1 \
+#                 --local_epochs 50 \
+#                 --num_users 2 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --distill_init prev \
+#                 --distill_epoch 200 \
+#                 --times 1 \
+#                 --workspace _baseline_all_data
+
+# python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
+#                 --algorithm FedDF \
+#                 --batch_size 32 \
+#                 --num_glob_iters 200 \
+#                 --local_epochs 20 \
+#                 --num_users 2 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --distill_init averaged \
+#                 --distill_epoch 10 \
+#                 --times 1 \
+#                 --workspace _baseline_all_data
+
+# CUDA_VISIBLE_DEVICES=1 python3 main.py --dataset EMnist-alpha0.5-ratio0.1 \
+#                 --algorithm FedDF \
+#                 --batch_size 128 \
+#                 --num_glob_iters 200 \
+#                 --local_epochs 20 \
+#                 --num_users 2 \
+#                 --lamda 1 \
+#                 --learning_rate 0.01 \
+#                 --model cnn \
+#                 --personal_learning_rate 0.01 \
+#                 --distill_init prev \
+#                 --distill_epoch 10 \
+#                 --times 1 \
+#                 --workspace _baseline_all_data
+
+# export CUDA_VISIBLE_DEVICES="" 
+
+CUDA_VISIBLE_DEVICES=0 python3 main.py --dataset EMnist-alpha0.5-ratio0.1 \
+                --algorithm FedGen \
+                --batch_size 128 \
+                --num_glob_iters 2 \
                 --local_epochs 1 \
                 --num_users 2 \
                 --lamda 1 \
                 --learning_rate 0.01 \
                 --model cnn \
                 --personal_learning_rate 0.01 \
-                --distill_init prev \
-                --distill_epoch 1 \
                 --times 1 \
-                --workspace _baseline_all_data
+                --debug \
+                --workspace _all_data
 
 # debug with pdb
 # python3 -m pdb main.py --dataset EMnist-alpha0.5-ratio0.1 \

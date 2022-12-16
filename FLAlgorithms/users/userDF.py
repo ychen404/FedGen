@@ -47,6 +47,9 @@ class UserDF(User):
                     if batch_idx % 500 == 0:
                         print(f"Epoch: {epoch}, batch index: {batch_idx}, Loss: {train_loss/(batch_idx+1)}, Acc: {100.*correct/total}")
                                 
+                self.writer.add_scalar(f"user {str(self.id)}/Total loss", train_loss/(batch_idx+1), glob_iter * self.local_epochs + epoch)
+                self.writer.add_scalar(f"user {str(self.id)}/Training acc", 100.*correct/total, glob_iter * self.local_epochs + epoch)
+
                 # using only one batch of data
                 # # result =self.get_next_train_batch(count_labels=count_labels)
                 # # X, y = result['X'], result['y']

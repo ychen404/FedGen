@@ -1,6 +1,6 @@
 from FLAlgorithms.users.userDF import UserDF
 from FLAlgorithms.servers.serverbase import Server
-from utils.model_utils import read_data, read_user_data, aggregate_user_data, create_generative_model, read_public_data, freeze_net
+from utils.model_utils import read_data, read_user_data, aggregate_user_data, create_generative_model, read_public_data, freeze_net, defrost_net
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -81,6 +81,8 @@ class FedDF(Server):
             
             for user_id, user in zip(self.user_idxs, self.selected_users): # allow selected users to train
                 # perform regularization using generated samples after the first communication round
+
+                defrost_net(user.model)                
                 user.train(
                     glob_iter,
                     personalized=self.personalized)
@@ -101,11 +103,10 @@ class FedDF(Server):
                 print("Init distill from prev")
 
             # model operations
-            self.distill(args, self.student_model)
+            self.distill(args, glob_iter, self.student_model)
 
-            exit()
             #########################################
-            # self.evaluate(glob_iter=glob_iter)
+            self.evaluate(glob_iter=glob_iter)
 
             curr_timestamp=time.time()  # log  server-agg end time
             agg_time = curr_timestamp - self.timestamp
@@ -125,7 +126,7 @@ class FedDF(Server):
         result = {'X': X, 'y': y}
         return result
 
-    def distill(self, args, student_model):
+    def distill(self, args, glob_iter, student_model):
         if 'EMnist' in args.dataset :
             num_class = 26
         else:
@@ -148,21 +149,17 @@ class FedDF(Server):
                 self.optimizer.zero_grad()
                 logit_buffer = torch.zeros(targets.shape[0],num_class).cuda() 
                 outputs = torch.zeros(targets.shape[0],num_class).cuda() 
+
                 for user_idx, user in enumerate(self.selected_users):
-                    # user.model.eval()
                     frozen_teacher = freeze_net(user.model)
-                    # user_result = user.model(inputs, logit=True)
                     user_result = frozen_teacher(inputs, logit=True)
                     
                     # Be careful here, the '+' sign changes the graph and you will run into the following error:
-                    # RuntimeError: Trying to backward through the graph a second time, 
-                    # but the saved intermediate results have already been freed. 
+                    # RuntimeError: Trying to backward through the graph a second time,
+                    # but the saved intermediate results have already been freed.
                     # Specify retain_graph=True when calling .backward() or autograd.grad() the first time. 
 
-                    # teacher_logit += user_result['logit'] * torch.tensor( 1 / len(self.selected_users) )
-
                     logit_buffer += user_result['logit'] * torch.tensor( 1 / len(self.selected_users))
-                    # outputs.append(user_result['output'] * torch.tensor( 1 / len(self.selected_users) ))
                     outputs += user_result['output'] * torch.tensor( 1 / len(self.selected_users))
 
                 teacher_logit = V(logit_buffer)
@@ -187,12 +184,14 @@ class FedDF(Server):
                 
                 teacher_correct += predicted_teachers.eq(targets).sum().item()
                 student_correct += predicted_student.eq(targets).sum().item()
-
                 
-                # if batch_idx % 20 == 0:
-                print(f"Distill Epoch: {de}, batch index: {batch_idx}")
-                print(f"Student Loss: {distill_loss/(batch_idx+1)},Student Acc: {100.* student_correct/total}")
-                print(f"Teacher Acc: {100.* teacher_correct/total}")
-
+                if batch_idx % 500 == 0:
+                    print(f"Distill Epoch: {de}, batch index: {batch_idx}")
+                    print(f"Student Loss: {distill_loss/(batch_idx+1)},Student Acc: {100.* student_correct/total}")
+                    print(f"Teacher Acc: {100.* teacher_correct/total}")
+                
+            self.writer.add_scalar("Global/Student Accuracy", 100.* student_correct/total, glob_iter * args.distill_epochs + de)
+            self.writer.add_scalar("Global/Teacher Accuracy", 100.* teacher_correct/total, glob_iter * args.distill_epochs + de)
+                
 
         return loss
