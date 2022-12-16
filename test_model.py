@@ -253,25 +253,26 @@ def train(epoch):
         if batch_idx % 20 == 0:
             print(f"batch index: {batch_idx}, Loss: {train_loss/(batch_idx+1)}, Acc: {100.*correct/total}")
     
-    result = get_next_train_batch(trainloaders[0])
-    X, y = result['X'], result['y']
-    X, y = X.to(device), y.to(device)
-    # pdb.set_trace()
-    optimizer.zero_grad()
-    outputs = net(X)['output']
-    loss = criterion(outputs, y)
-    loss.backward()
-    optimizer.step()
+    # # result = get_next_train_batch(trainloaders[0])
+    # # X, y = result['X'], result['y']
+    # # X, y = X.to(device), y.to(device)
+    # # # pdb.set_trace()
+    # # optimizer.zero_grad()
+    # # outputs = net(X)['output']
+    # loss = criterion(outputs, y)
+    # loss.backward()
+    # optimizer.step()
 
-    train_loss += loss.item()
-    _, predicted = outputs.max(1)
-    total += y.shape[0]
-    correct += predicted.eq(y).sum().item()
+    # train_loss += loss.item()
+    # _, predicted = outputs.max(1)
+    # total += y.shape[0]
+    # correct += predicted.eq(y).sum().item()
 
-    print(f"Total: {total}, Loss: {train_loss/(total)}, Acc: {100.*correct/total}")
+    # print(f"Total: {total}, Loss: {train_loss/(total)}, Acc: {100.*correct/total}")
+   
     # return train_loss
-    # return train_loss/(batch_idx+1)
-    return train_loss/(total)
+    return train_loss/(batch_idx+1)
+    # return train_loss/(total)
 
 def test(epoch):
     global best_acc

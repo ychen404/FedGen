@@ -240,6 +240,7 @@ python3 main.py --dataset EMnist-alpha0.5-ratio0.9 \
                 --model cnn \
                 --personal_learning_rate 0.01 \
                 --distill_init prev \
+                --distill_epoch 1 \
                 --times 1 \
                 --workspace _baseline_all_data
 

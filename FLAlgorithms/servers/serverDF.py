@@ -1,6 +1,6 @@
 from FLAlgorithms.users.userDF import UserDF
 from FLAlgorithms.servers.serverbase import Server
-from utils.model_utils import read_data, read_user_data, aggregate_user_data, create_generative_model, read_public_data
+from utils.model_utils import read_data, read_user_data, aggregate_user_data, create_generative_model, read_public_data, freeze_net
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -52,7 +52,7 @@ class FedDF(Server):
         self.train_data_loader, self.train_iter, self.available_labels = aggregate_user_data(data, args.dataset, self.ensemble_batch_size)
         
         self.optimizer = torch.optim.Adam(
-            params=self.model.parameters(),
+            params=self.student_model.parameters(),
             lr=self.ensemble_lr, betas=(0.9, 0.999),
             eps=1e-08, weight_decay=0, amsgrad=False)
         self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=self.optimizer, gamma=0.98)
@@ -101,7 +101,7 @@ class FedDF(Server):
                 print("Init distill from prev")
 
             # model operations
-            self.distill(args, 10, self.student_model)
+            self.distill(args, self.student_model)
 
             exit()
             #########################################
@@ -125,9 +125,7 @@ class FedDF(Server):
         result = {'X': X, 'y': y}
         return result
 
-    def distill(self, args, distill_epoch, student_model):
-        # self.generative_model.train()
-        
+    def distill(self, args, student_model):
         if 'EMnist' in args.dataset :
             num_class = 26
         else:
@@ -135,51 +133,66 @@ class FedDF(Server):
         
         student_model.train()
         outputs = []
-        for de in range(distill_epoch):
+        for de in range(args.distill_epochs):
             self.optimizer.zero_grad()
         
             ######### get teacher loss ############
             teacher_logit = 0
             distill_loss = 0
-            correct = 0
+            student_correct = 0
+            teacher_correct = 0
             total = 0
-
             
             for batch_idx, (inputs, targets) in enumerate(self.publicloader):
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 self.optimizer.zero_grad()
                 logit_buffer = torch.zeros(targets.shape[0],num_class).cuda() 
+                outputs = torch.zeros(targets.shape[0],num_class).cuda() 
                 for user_idx, user in enumerate(self.selected_users):
-                    user.model.eval()
-
-                    user_result = user.model(inputs, logit=True) 
-
+                    # user.model.eval()
+                    frozen_teacher = freeze_net(user.model)
+                    # user_result = user.model(inputs, logit=True)
+                    user_result = frozen_teacher(inputs, logit=True)
+                    
                     # Be careful here, the '+' sign changes the graph and you will run into the following error:
                     # RuntimeError: Trying to backward through the graph a second time, 
                     # but the saved intermediate results have already been freed. 
                     # Specify retain_graph=True when calling .backward() or autograd.grad() the first time. 
 
                     # teacher_logit += user_result['logit'] * torch.tensor( 1 / len(self.selected_users) )
-                    logit_buffer += user_result['logit'] * torch.tensor( 1 / len(self.selected_users) )
-                    teacher_logit = V(logit_buffer)
-                    # teacher_logits.append(user_result['logit'] * torch.tensor( 1 / len(self.selected_users)))
-                    
-                    outputs.append(user_result['output'] * torch.tensor( 1 / len(self.selected_users) ))
+
+                    logit_buffer += user_result['logit'] * torch.tensor( 1 / len(self.selected_users))
+                    # outputs.append(user_result['output'] * torch.tensor( 1 / len(self.selected_users) ))
+                    outputs += user_result['output'] * torch.tensor( 1 / len(self.selected_users))
+
+                teacher_logit = V(logit_buffer)
                 
                 # ######### get student loss ############
                 student_output = student_model(inputs, logit=True)
                 loss = F.kl_div(F.log_softmax(student_output['logit'], dim=1), F.softmax(teacher_logit, dim=1))
 
                 loss.backward()
-                self.optimizer.step()                
+                self.optimizer.step()
 
-                outputs_tensors = torch.stack(outputs).sum(dim=0)
+                # outputs_tensors = torch.stack(outputs).sum(dim=0)
+                
                 distill_loss += loss.item()
-                _, predicted = outputs_tensors.max(1)
-                total += targets.size(0)
-                correct += predicted.eq(targets).sum().item()
+                
+                _, predicted_teachers = outputs.max(1)
+                _, predicted_student = student_output['output'].max(1)
 
-                if batch_idx % 20 == 0:
-                    print(f"Distill Epoch: {de}, batch index: {batch_idx}, Loss: {distill_loss/(batch_idx+1)}, Acc: {100.*correct/total}")
+                # pdb.set_trace()
+
+                total += targets.size(0)
+                
+                teacher_correct += predicted_teachers.eq(targets).sum().item()
+                student_correct += predicted_student.eq(targets).sum().item()
+
+                
+                # if batch_idx % 20 == 0:
+                print(f"Distill Epoch: {de}, batch index: {batch_idx}")
+                print(f"Student Loss: {distill_loss/(batch_idx+1)},Student Acc: {100.* student_correct/total}")
+                print(f"Teacher Acc: {100.* teacher_correct/total}")
+
 
         return loss

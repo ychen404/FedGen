@@ -288,6 +288,14 @@ def create_model(model, dataset, algorithm):
     return model
 
 
+def freeze_net(net):
+    # freeze the layers of a model
+    for param in net.parameters():
+        param.requires_grad = False
+    # set the teacher net into evaluation mode
+    net.eval()
+    return net
+
 def polyak_move(params, target_params, ratio=0.1):
     for param, target_param in zip(params, target_params):
         param.data=param.data - ratio * (param.clone().detach().data - target_param.clone().detach().data)

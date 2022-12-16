@@ -21,10 +21,12 @@ class UserDF(User):
         self.clean_up_counts()
         self.model.train()
 
-        train_loss = 0
-        correct = 0
-        total = 0
+
         for epoch in range(1, self.local_epochs + 1):
+            
+            train_loss = 0
+            correct = 0
+            total = 0
             self.model.train()
             for i in range(self.K):
                 for batch_idx, (inputs, targets) in enumerate(self.trainloader):
